@@ -15,12 +15,14 @@ import {
   Leaf,
   Star,
 } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import LoginModal from "../components/auth/LoginModal";
+import { useAuth } from "../context/AuthContext.jsx";
+import { Button } from "../components/ui/button.jsx";
+import { Input } from "../components/ui/input.jsx";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,16 +43,14 @@ export default function RegisterPage() {
 
   // API data states
 
-
-
   // Check username availability
   const checkUsernameAvailability = async (username) => {
     if (!username || username.length < 3) return;
     try {
       const response = await fetch(
         `http://localhost:3000/api/auth/check-username/${encodeURIComponent(
-          username
-        )}`
+          username,
+        )}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -73,8 +73,8 @@ export default function RegisterPage() {
     try {
       const response = await fetch(
         `http://localhost:3000/api/auth/check-email/${encodeURIComponent(
-          email
-        )}`
+          email,
+        )}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -130,14 +130,12 @@ export default function RegisterPage() {
       newErrors.confirmPassword = "Please confirm your password";
     if (!formData.firstName.trim())
       newErrors.firstName = "First name is required";
-    if (!formData.lastName.trim())
-      newErrors.lastName = "Last name is required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.phoneNumber.trim())
       newErrors.phoneNumber = "Phone number is required";
     if (!formData.address.trim())
       newErrors.address = "Street address is required";
-    if(!formData.location.trim())
-      newErrors.location = "Location is required";
+    if (!formData.location.trim()) newErrors.location = "Location is required";
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -199,17 +197,26 @@ export default function RegisterPage() {
 
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        showSuccess("Registration Successful!", "Welcome to GroCart! You have been successfully registered.");
+        // Save auth in context + localStorage so it persists across pages.
+        login(data.user, data.token);
+        showSuccess(
+          "Registration Successful!",
+          "Welcome to GroCart! You have been successfully registered.",
+        );
         // Navigate to HomePage after successful registration
         navigate("/");
       } else {
-        showError("Registration Failed", data.error || "Please check your information and try again.");
+        showError(
+          "Registration Failed",
+          data.error || "Please check your information and try again.",
+        );
       }
     } catch (error) {
       console.error("Registration failed:", error);
-      showError("Registration Failed", "Something went wrong. Please try again later.");
+      showError(
+        "Registration Failed",
+        "Something went wrong. Please try again later.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -227,14 +234,26 @@ export default function RegisterPage() {
         <div className="bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 p-12 text-center relative overflow-hidden">
           {/* Animated Background Elements */}
           <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-8 left-12 text-6xl animate-bounce">🥕</div>
-            <div className="absolute top-12 right-16 text-5xl animate-pulse">🍎</div>
-            <div className="absolute bottom-10 left-20 text-4xl animate-bounce delay-300">🥬</div>
-            <div className="absolute bottom-12 right-12 text-5xl animate-pulse delay-500">🛒</div>
-            <div className="absolute top-1/2 left-1/3 text-3xl animate-bounce delay-700">🥛</div>
-            <div className="absolute top-1/3 right-1/3 text-4xl animate-pulse delay-200">🍞</div>
+            <div className="absolute top-8 left-12 text-6xl animate-bounce">
+              🥕
+            </div>
+            <div className="absolute top-12 right-16 text-5xl animate-pulse">
+              🍎
+            </div>
+            <div className="absolute bottom-10 left-20 text-4xl animate-bounce delay-300">
+              🥬
+            </div>
+            <div className="absolute bottom-12 right-12 text-5xl animate-pulse delay-500">
+              🛒
+            </div>
+            <div className="absolute top-1/2 left-1/3 text-3xl animate-bounce delay-700">
+              🥛
+            </div>
+            <div className="absolute top-1/3 right-1/3 text-4xl animate-pulse delay-200">
+              🍞
+            </div>
           </div>
-          
+
           {/* Main Content */}
           <div className="relative z-10">
             {/* Enhanced Logo */}
@@ -248,7 +267,8 @@ export default function RegisterPage() {
               </div>
               <div className="text-left">
                 <h1 className="text-6xl font-black text-white tracking-wide mb-2">
-                  Gro<span className="text-yellow-300 drop-shadow-lg">Cart</span>
+                  Gro
+                  <span className="text-yellow-300 drop-shadow-lg">Cart</span>
                 </h1>
                 <div className="flex items-center text-green-100 text-lg">
                   <Star className="w-4 h-4 mr-1 text-yellow-300" />
@@ -257,7 +277,7 @@ export default function RegisterPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Simple Description */}
             <div className="max-w-2xl mx-auto">
               <p className="text-green-50 text-2xl font-semibold leading-relaxed">
@@ -500,7 +520,7 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Login Modal */}
       {showLoginModal && (
         <LoginModal
@@ -508,7 +528,6 @@ export default function RegisterPage() {
           onLoginSuccess={handleLoginSuccess}
         />
       )}
-      
     </div>
   );
 }

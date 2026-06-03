@@ -121,7 +121,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-opacity duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px] transition-opacity duration-300"
       onClick={handleBackdropClick}
     >
       <div className="relative w-full max-w-md mx-4 bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-400 rounded-3xl shadow-2xl border border-white/30 transform transition-all duration-300 scale-100 p-1">

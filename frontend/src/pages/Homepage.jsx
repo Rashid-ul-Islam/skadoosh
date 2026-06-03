@@ -8,7 +8,6 @@
 //   interactive UIs by breaking them into reusable pieces
 //   called "components". Think of components like LEGO bricks.
 
-
 // ── IMPORT ──────────────────────────────────────────────────
 // We import { useState } from "react".
 // 'useState' is a React "Hook" — a special function that lets
@@ -21,8 +20,10 @@
 // If you removed this import, filter buttons would still show
 // but clicking them wouldn't visually highlight/toggle.
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import LoginModal from "../components/auth/LoginModal.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 // ────────────────────────────────────────────────────────────
-
 
 // ── DATA: products ──────────────────────────────────────────
 // This is a plain JavaScript OBJECT that holds all the fake
@@ -50,50 +51,49 @@ import { useState } from "react";
 // ✏️ TO CUSTOMIZE: Change any title, price, emoji, or seller
 //    name here and it will instantly update on the page.
 const products = {
-
   // ── recent: products uploaded recently ──
   recent: [
     {
       id: 1,
       emoji: "📱",
-      bg: "#E1F5EE",           // light green background
+      bg: "#E1F5EE", // light green background
       title: "Samsung S23 FE",
       price: "৳28,500",
-      meta: "12 min ago",      // how long ago it was listed
+      meta: "12 min ago", // how long ago it was listed
       seller: "Rahim K.",
       initials: "RK",
       avatarBg: "#E1F5EE",
-      avatarColor: "#0F6E56",  // dark green text in avatar
-      verified: true,          // shows ✔ next to seller name
-      badge: "New",            // top-left label on card image
+      avatarColor: "#0F6E56", // dark green text in avatar
+      verified: true, // shows ✔ next to seller name
+      badge: "New", // top-left label on card image
       badgeClass: "badge-new", // links to CSS at the bottom → green style
     },
     {
       id: 2,
       emoji: "👟",
-      bg: "#FAEEDA",           // light orange background
+      bg: "#FAEEDA", // light orange background
       title: "Nike Air Max 97",
       price: "৳4,200",
       meta: "28 min ago",
       seller: "Sabina N.",
       initials: "SN",
       avatarBg: "#FAEEDA",
-      avatarColor: "#854F0B",  // dark brown text
+      avatarColor: "#854F0B", // dark brown text
       verified: true,
-      badge: "Hot",            // red badge — links to badge-hot CSS class
+      badge: "Hot", // red badge — links to badge-hot CSS class
       badgeClass: "badge-hot",
     },
     {
       id: 3,
       emoji: "💻",
-      bg: "#E6F1FB",           // light blue background
+      bg: "#E6F1FB", // light blue background
       title: "MacBook Air M2",
       price: "৳95,000",
       meta: "45 min ago",
       seller: "Tanvir H.",
       initials: "TH",
       avatarBg: "#E6F1FB",
-      avatarColor: "#185FA5",  // dark blue text
+      avatarColor: "#185FA5", // dark blue text
       verified: true,
       badge: "New",
       badgeClass: "badge-new",
@@ -101,16 +101,16 @@ const products = {
     {
       id: 4,
       emoji: "🪑",
-      bg: "#FBEAF0",           // light pink background
+      bg: "#FBEAF0", // light pink background
       title: "Office Chair",
       price: "৳3,800",
       meta: "1 hr ago",
       seller: "Mina A.",
       initials: "MA",
       avatarBg: "#FBEAF0",
-      avatarColor: "#72243E",  // dark pink/maroon text
-      verified: false,         // no ✔ checkmark shown
-      badge: null,             // null means NO badge shown
+      avatarColor: "#72243E", // dark pink/maroon text
+      verified: false, // no ✔ checkmark shown
+      badge: null, // null means NO badge shown
     },
   ],
 
@@ -122,13 +122,13 @@ const products = {
       bg: "#E1F5EE",
       title: "Organic Veggies Box",
       price: "৳650",
-      meta: "Dhanmondi",       // neighborhood name instead of time
+      meta: "Dhanmondi", // neighborhood name instead of time
       seller: "Green Farm",
       initials: "GF",
       avatarBg: "#E1F5EE",
       avatarColor: "#0F6E56",
       verified: true,
-      badge: "0.4 km",         // distance badge
+      badge: "0.4 km", // distance badge
       badgeClass: "badge-nearby", // blue badge style
     },
     {
@@ -157,21 +157,21 @@ const products = {
       initials: "FJ",
       avatarBg: "#E6F1FB",
       avatarColor: "#185FA5",
-      verified: false,         // unverified seller
+      verified: false, // unverified seller
       badge: "1.8 km",
       badgeClass: "badge-nearby",
     },
     {
       id: 4,
       emoji: "🚲",
-      bg: "#FCEBEB",           // very light red
+      bg: "#FCEBEB", // very light red
       title: "Kids Bicycle",
       price: "৳2,200",
       meta: "Banani",
       seller: "Nadia R.",
       initials: "NR",
       avatarBg: "#FCEBEB",
-      avatarColor: "#A32D2D",  // dark red text
+      avatarColor: "#A32D2D", // dark red text
       verified: true,
       badge: "2.0 km",
       badgeClass: "badge-nearby",
@@ -185,8 +185,8 @@ const products = {
       emoji: "📷",
       bg: "#FAEEDA",
       title: "Canon DSLR Kit",
-      price: "৳1,200/day",     // price per day instead of a flat price
-      meta: "Min. 1 day",      // minimum rental period
+      price: "৳1,200/day", // price per day instead of a flat price
+      meta: "Min. 1 day", // minimum rental period
       seller: "Photo Studio",
       initials: "PS",
       avatarBg: "#FAEEDA",
@@ -211,14 +211,14 @@ const products = {
     {
       id: 3,
       emoji: "🔧",
-      bg: "#EAF3DE",           // very light green
+      bg: "#EAF3DE", // very light green
       title: "Power Drill Set",
       price: "৳400/day",
       meta: "Min. 2 days",
       seller: "Tool Trade",
       initials: "TT",
       avatarBg: "#EAF3DE",
-      avatarColor: "#3B6D11",  // dark olive green
+      avatarColor: "#3B6D11", // dark olive green
       verified: false,
     },
     {
@@ -238,7 +238,6 @@ const products = {
 };
 // ────────────────────────────────────────────────────────────
 
-
 // ── FILTER LABEL ARRAYS ──────────────────────────────────────
 // These are simple arrays (lists) of strings.
 // They define what text appears on the filter chips/buttons
@@ -250,11 +249,16 @@ const products = {
 //    yet — that logic would need to be added separately.)
 //
 // ✏️ TO REMOVE A FILTER: Delete a string from the array.
-const recentFilters = ["Latest", "Electronics", "Fashion", "Home & Garden", "Books"];
+const recentFilters = [
+  "Latest",
+  "Electronics",
+  "Fashion",
+  "Home & Garden",
+  "Books",
+];
 const nearbyFilters = ["≤ 2 km", "≤ 5 km", "≤ 10 km", "Delivery"];
-const rentFilters   = ["All", "Per day", "Per week", "Events", "Equipment"];
+const rentFilters = ["All", "Per day", "Per week", "Events", "Equipment"];
 // ────────────────────────────────────────────────────────────
-
 
 // ================================================================
 // COMPONENT: ProductCard
@@ -280,11 +284,9 @@ const rentFilters   = ["All", "Per day", "Per week", "Events", "Equipment"];
 // If you change any prop value, the card updates accordingly.
 // ================================================================
 function ProductCard({ item, metaIcon, priceClass = "" }) {
-
   // The component RETURNS JSX — the visual structure to render.
   // 'return' is always followed by a single parent element.
   return (
-
     // ── Card Container ──
     // This <div> is the white card box.
     // Tailwind CSS classes explain:
@@ -302,7 +304,6 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
     // ✏️ Change 'hover:-translate-y-0.5' to 'hover:-translate-y-2'
     //    to make the card lift higher on hover.
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-gray-300 transition-all duration-150">
-
       {/* ── Image Area ──
           This div shows the colored background + emoji.
           'relative' positioning is needed so the badge can be
@@ -332,7 +333,9 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
                                       which maps to CSS at the bottom
                                       of the file for colors. */}
         {item.badge && (
-          <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.badgeClass}`}>
+          <span
+            className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.badgeClass}`}
+          >
             {item.badge}
           </span>
         )}
@@ -358,7 +361,6 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
           'pt-2'   → top padding
           'pb-2.5' → bottom padding */}
       <div className="px-2.5 pt-2 pb-2.5">
-
         {/* Product Title
             'text-[13px]'  → 13px font size
             'font-medium'  → medium weight (not bold, not thin)
@@ -374,7 +376,9 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
             
             ✏️ To change the default price color, change "#1D9E75"
                in the className below to any hex code. */}
-        <p className={`font-bold text-[14px] mb-1 ${priceClass || "text-[#1D9E75]"}`}>
+        <p
+          className={`font-bold text-[14px] mb-1 ${priceClass || "text-[#1D9E75]"}`}
+        >
           {item.price}
         </p>
 
@@ -393,7 +397,6 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
             'flex items-center gap-1.5' → lays items horizontally
                                            with small spacing. */}
         <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-gray-100 dark:border-gray-800">
-
           {/* Avatar Circle
               A tiny circle showing the seller's initials.
               'w-4 h-4'       → 16px × 16px size
@@ -412,14 +415,19 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
           {/* Seller Name
               'truncate' → adds "..." if name is too long
               'text-gray-500' → muted gray color */}
-          <span className="text-[11px] text-gray-500 truncate">{item.seller}</span>
+          <span className="text-[11px] text-gray-500 truncate">
+            {item.seller}
+          </span>
 
           {/* Verified Badge ✔
               Only renders if item.verified === true.
               'ml-auto' pushes it to the far right of the row.
               Remove this block to hide the checkmark entirely. */}
           {item.verified && (
-            <span className="ml-auto text-[#1D9E75] text-[11px] flex-shrink-0" title="Verified seller">
+            <span
+              className="ml-auto text-[#1D9E75] text-[11px] flex-shrink-0"
+              title="Verified seller"
+            >
               ✔
             </span>
           )}
@@ -428,7 +436,6 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
     </div>
   );
 }
-
 
 // ================================================================
 // COMPONENT: FilterChips
@@ -450,11 +457,9 @@ function ProductCard({ item, metaIcon, priceClass = "" }) {
 // ================================================================
 function FilterChips({ filters, active, onSelect }) {
   return (
-
     // Wrapper div: flex layout, small gaps between chips, wraps to next
     // line if there's not enough space ('flex-wrap'), small margin below.
     <div className="flex gap-1.5 flex-wrap mb-3">
-
       {/* .map() loops over the filters array.
           For each filter string 'f', it creates a <button>.
           'key={f}' is required by React to track items in lists
@@ -462,11 +467,9 @@ function FilterChips({ filters, active, onSelect }) {
       {filters.map((f) => (
         <button
           key={f}
-
           // When clicked, call onSelect with the filter string.
           // This updates the parent component's state (see useState below).
           onClick={() => onSelect(f)}
-
           // Conditional styling:
           // If this chip IS the active/selected one → green background
           // If it's NOT active → white/outlined, turns gray on hover
@@ -475,17 +478,16 @@ function FilterChips({ filters, active, onSelect }) {
           // ✏️ Change 'bg-[#1D9E75]' to any color for the active chip color.
           className={`text-xs px-3 py-1 rounded-full border transition-all duration-100 font-medium ${
             active === f
-              ? "bg-[#1D9E75] text-white border-[#1D9E75]"    // selected style
+              ? "bg-[#1D9E75] text-white border-[#1D9E75]" // selected style
               : "bg-white dark:bg-gray-900 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-400" // unselected style
           }`}
         >
-          {f}  {/* The filter label text, e.g. "Electronics" */}
+          {f} {/* The filter label text, e.g. "Electronics" */}
         </button>
       ))}
     </div>
   );
 }
-
 
 // ================================================================
 // COMPONENT: MarketplaceHomepage  (THE MAIN / DEFAULT COMPONENT)
@@ -499,7 +501,6 @@ function FilterChips({ filters, active, onSelect }) {
 // Think of it as the outermost container that holds everything together.
 // ================================================================
 export default function MarketplaceHomepage() {
-
   // ── STATE with useState ──────────────────────────────────────
   // useState lets the component "remember" which filter is selected.
   //
@@ -519,14 +520,31 @@ export default function MarketplaceHomepage() {
   //
   // ✏️ Change "Latest" to any other filter string to make a
   //    different chip pre-selected when the page loads.
-  const [recentFilter, setRecentFilter] = useState("Latest");   // for Recent section
-  const [nearbyFilter, setNearbyFilter] = useState("≤ 2 km");   // for Nearby section
-  const [rentFilter,   setRentFilter]   = useState("All");      // for Rent section
+  const [recentFilter, setRecentFilter] = useState("Latest"); // for Recent section
+  const [nearbyFilter, setNearbyFilter] = useState("≤ 2 km"); // for Nearby section
+  const [rentFilter, setRentFilter] = useState("All"); // for Rent section
+
+  // ── AUTH STATE (global + persistent) ─────────────────────────
+  // useAuth reads login info from localStorage so it stays correct
+  // while navigating between pages or refreshing the browser.
+  const { user, isLoggedIn, logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Controls whether the profile dropdown is open (click toggles it).
+  // Hover will also open it via CSS (see menu below).
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Controls the login modal (open/close).
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Helper values for display when logged in.
+  // Falls back safely if some fields are missing.
+  const displayName = user?.name || user?.username || "User";
+  const displayEmail = user?.email || "user@example.com";
   // ────────────────────────────────────────────────────────────
 
   // The component returns the full page HTML structure.
   return (
-
     // ── Page Wrapper ──
     // 'min-h-screen' → at least as tall as the browser window
     // 'bg-gray-50'   → very light gray page background
@@ -534,8 +552,6 @@ export default function MarketplaceHomepage() {
     //
     // ✏️ Change 'bg-gray-50' to 'bg-white' for a pure white background.
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 font-sans">
-
-
       {/* ============================================================
           SECTION: Header / Navigation Bar
           ============================================================
@@ -551,7 +567,6 @@ export default function MarketplaceHomepage() {
           
           ✏️ Change 'h-14' to 'h-20' to make the header taller. */}
       <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 flex items-center justify-between h-14">
-
         {/* ── Logo ──
             'font-extrabold text-xl tracking-tight' → bold, large, tight spacing.
             fontFamily 'Syne' is a custom Google Font loaded in the <style> below.
@@ -567,9 +582,10 @@ export default function MarketplaceHomepage() {
           className="flex items-center gap-1.5 font-extrabold text-xl tracking-tight"
           style={{ fontFamily: "'Syne', sans-serif" }}
         >
-          <span className="w-2 h-2 rounded-full bg-[#1D9E75] inline-block animate-pulse" /> {/* pulsing dot */}
+          <span className="w-2 h-2 rounded-full bg-[#1D9E75] inline-block animate-pulse" />{" "}
+          {/* pulsing dot */}
           <span className="text-gray-900 dark:text-white">Bazaar</span>
-          <span className="text-[#1D9E75]">Hub</span>  {/* green part */}
+          <span className="text-[#1D9E75]">Hub</span> {/* green part */}
         </div>
 
         {/* ── Nav Buttons ──
@@ -589,11 +605,89 @@ export default function MarketplaceHomepage() {
             🔔
           </button>
           <button className="text-sm px-4 py-1.5 rounded-lg bg-[#1D9E75] text-white font-medium hover:bg-[#0F6E56] transition">
-            + Sell  {/* hover darkens to #0F6E56 — a darker green */}
+            + Sell {/* hover darkens to #0F6E56 — a darker green */}
           </button>
+          {/* ── Profile Menu ──
+              This wrapper uses 'relative' so the dropdown can be positioned
+              absolutely inside it. 'group' lets us show the menu on hover.
+              Hover OR click will open the menu (click toggles isProfileOpen). */}
+          <div className="relative group">
+            <button
+              className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+              title="Profile"
+              onClick={() => setIsProfileOpen((prev) => !prev)}
+            >
+              👤
+            </button>
+
+            {/* Dropdown panel
+                - If isProfileOpen is true, it's visible.
+                - It also appears on hover via `group-hover:block`.
+                ✏️ Remove `group-hover:block` if you want click-only behavior. */}
+            <div
+              className={`absolute right-0 mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg p-1 ${
+                isProfileOpen ? "block" : "hidden"
+              } group-hover:block`}
+            >
+              {isLoggedIn ? (
+                // Logged-in view: show profile details + logout button
+                <div className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">👤</span>
+                    <div>
+                      <p className="text-gray-900 dark:text-white font-medium">
+                        {displayName}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {displayEmail}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                    onClick={() => {
+                      logout();
+                      setIsProfileOpen(false);
+                    }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              ) : (
+                // Logged-out view: show Login and Register actions
+                <div className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 space-y-2">
+                  <button
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                    onClick={() => {
+                      setShowLoginModal(true);
+                      setIsProfileOpen(false);
+                    }}
+                  >
+                    Log in
+                  </button>
+                  <button
+                    className="w-full text-left px-3 py-2 rounded-lg bg-[#1D9E75] text-white hover:bg-[#0F6E56] transition"
+                    onClick={() => {
+                      navigate("/register");
+                      setIsProfileOpen(false);
+                    }}
+                  >
+                    Register
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </nav>
       </header>
 
+      {/* Login Modal (opens from the profile dropdown) */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={() => setShowLoginModal(false)}
+        currentPath="/"
+      />
 
       {/* ============================================================
           SECTION: Hero  (the big intro area below the header)
@@ -610,7 +704,6 @@ export default function MarketplaceHomepage() {
                                  centers it horizontally on wide screens */}
       <section className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 py-10">
         <div className="max-w-2xl mx-auto">
-
           {/* ── Top Badge / Pill ──
               A small decorative label highlighting the value proposition.
               'inline-flex' → shrinks to fit its content (doesn't stretch full width)
@@ -641,8 +734,10 @@ export default function MarketplaceHomepage() {
             className="text-[32px] font-extrabold leading-tight tracking-tight text-gray-900 dark:text-white mb-3"
             style={{ fontFamily: "'Syne', sans-serif" }}
           >
-            Your local marketplace,<br />
-            <span className="text-[#1D9E75]">no middleman</span> fees.  {/* highlighted green words */}
+            Your local marketplace,
+            <br />
+            <span className="text-[#1D9E75]">no middleman</span> fees.{" "}
+            {/* highlighted green words */}
           </h1>
 
           {/* ── Subtitle Paragraph ──
@@ -653,7 +748,9 @@ export default function MarketplaceHomepage() {
               
               ✏️ Edit this text to change the description. */}
           <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mb-5 font-light">
-            Buy and sell products directly with people in your community. Verified sellers, secure payments, and real-time delivery tracking — all in one place.
+            Buy and sell products directly with people in your community.
+            Verified sellers, secure payments, and real-time delivery tracking —
+            all in one place.
           </p>
 
           {/* ── Search Bar Row ──
@@ -664,14 +761,12 @@ export default function MarketplaceHomepage() {
               'flex-1' on the outer div means it takes all available width,
               pushing the Nearby button to the right. */}
           <div className="flex gap-2">
-
             {/* Search Input Container
                 'bg-gray-50' → slightly off-white background inside
                 'h-11' → 44px tall
                 'rounded-xl' → rounded corners */}
             <div className="flex-1 flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 h-11">
-              <span className="text-gray-400">🔍</span>  {/* search icon */}
-
+              <span className="text-gray-400">🔍</span> {/* search icon */}
               {/* Actual text input field
                   'bg-transparent' → no background (inherits from parent div)
                   'border-none outline-none' → removes default input borders
@@ -708,18 +803,22 @@ export default function MarketplaceHomepage() {
           <div className="flex flex-wrap gap-x-5 gap-y-1 mt-5">
             {[
               ["24,800+", "active listings"],
-              ["6,200",   "verified sellers"],
-              ["3.2 km",  "avg. delivery radius"],
+              ["6,200", "verified sellers"],
+              ["3.2 km", "avg. delivery radius"],
             ].map(([num, label], i) => (
-              <span key={i} className="text-sm text-gray-400 flex items-center gap-1">
-                <strong className="text-gray-700 dark:text-gray-200 font-medium">{num}</strong> {label}
+              <span
+                key={i}
+                className="text-sm text-gray-400 flex items-center gap-1"
+              >
+                <strong className="text-gray-700 dark:text-gray-200 font-medium">
+                  {num}
+                </strong>{" "}
+                {label}
               </span>
             ))}
           </div>
-
         </div>
       </section>
-
 
       {/* ============================================================
           BODY: The three product grid sections
@@ -727,18 +826,16 @@ export default function MarketplaceHomepage() {
           'max-w-2xl mx-auto' → centered, max width ~672px
           'px-6 pb-16'        → horizontal padding + bottom padding */}
       <div className="max-w-2xl mx-auto px-6 pb-16">
-
-
         {/* ==========================================================
             SECTION: Recent Uploads
             ========================================================== */}
-        <section className="mt-8">  {/* mt-8 = 32px top margin, spacing from hero */}
-
+        <section className="mt-8">
+          {" "}
+          {/* mt-8 = 32px top margin, spacing from hero */}
           {/* ── Section Header Row ──
               Contains the section title on the left and "See all →" on the right.
               'justify-between' pushes title left and button right. */}
           <div className="flex items-center justify-between mb-3.5">
-
             {/* Section Title with Icon
                 The colored square icon is a small div with an emoji inside.
                 'w-7 h-7 rounded-lg' → 28×28px square with slightly rounded corners.
@@ -766,7 +863,6 @@ export default function MarketplaceHomepage() {
               See all →
             </button>
           </div>
-
           {/* Filter Chips for the Recent section
               - filters → the list of chip labels
               - active  → which chip is currently green (recentFilter state)
@@ -776,7 +872,6 @@ export default function MarketplaceHomepage() {
             active={recentFilter}
             onSelect={setRecentFilter}
           />
-
           {/* Product Grid
               'grid grid-cols-2' → 2 columns on mobile
               'sm:grid-cols-4'   → 4 columns on screens ≥ 640px wide (tablets+)
@@ -785,26 +880,19 @@ export default function MarketplaceHomepage() {
               ✏️ Change 'grid-cols-2' to 'grid-cols-3' for 3 columns on mobile.
               ✏️ Change 'gap-2.5' to 'gap-4' for larger gaps between cards. */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-
             {/* Loop over products.recent array and render one ProductCard per item.
                 'key={item.id}' → required by React for list rendering efficiency.
                 metaIcon="🕐"  → clock icon shown next to the time-ago text. */}
             {products.recent.map((item) => (
-              <ProductCard
-                key={item.id}
-                item={item}
-                metaIcon="🕐"
-              />
+              <ProductCard key={item.id} item={item} metaIcon="🕐" />
             ))}
           </div>
         </section>
-
 
         {/* ==========================================================
             SECTION: Nearby Products
             ========================================================== */}
         <section className="mt-8">
-
           <div className="flex items-center justify-between mb-3.5">
             {/* Section title — blue-themed icon box */}
             <h2
@@ -813,7 +901,7 @@ export default function MarketplaceHomepage() {
             >
               <span
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
-                style={{ background: "#E6F1FB", color: "#185FA5" }}  // light blue, dark blue
+                style={{ background: "#E6F1FB", color: "#185FA5" }} // light blue, dark blue
               >
                 📍
               </span>
@@ -838,18 +926,16 @@ export default function MarketplaceHomepage() {
               <ProductCard
                 key={item.id}
                 item={item}
-                metaIcon="📍"  /* pin icon shown next to neighborhood name */
+                metaIcon="📍" /* pin icon shown next to neighborhood name */
               />
             ))}
           </div>
         </section>
 
-
         {/* ==========================================================
             SECTION: Products for Rent
             ========================================================== */}
         <section className="mt-8">
-
           <div className="flex items-center justify-between mb-3.5">
             {/* Section title — orange/amber-themed icon box */}
             <h2
@@ -858,7 +944,7 @@ export default function MarketplaceHomepage() {
             >
               <span
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
-                style={{ background: "#FAEEDA", color: "#854F0B" }}  // light amber, dark brown
+                style={{ background: "#FAEEDA", color: "#854F0B" }} // light amber, dark brown
               >
                 📅
               </span>
@@ -890,17 +976,19 @@ export default function MarketplaceHomepage() {
             {products.rent.map((item) => (
               <ProductCard
                 key={item.id}
-                item={{ ...item, badge: "badge-rent", badgeClass: "badge-rent" }}
-                metaIcon="📅"            // calendar icon
-                priceClass="text-[#854F0B]"  // brown price color for rent
+                item={{
+                  ...item,
+                  badge: "badge-rent",
+                  badgeClass: "badge-rent",
+                }}
+                metaIcon="📅" // calendar icon
+                priceClass="text-[#854F0B]" // brown price color for rent
               />
             ))}
           </div>
         </section>
-
       </div>
       {/* end of body div */}
-
 
       {/* ============================================================
           GLOBAL STYLES
@@ -931,7 +1019,6 @@ export default function MarketplaceHomepage() {
         .badge-nearby { background: #E6F1FB; color: #185FA5; }
         .badge-rent   { background: #FAEEDA; color: #854F0B; }
       `}</style>
-
     </div>
     // end of page wrapper div
   );
