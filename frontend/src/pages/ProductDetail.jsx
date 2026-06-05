@@ -1,0 +1,888 @@
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Heart,
+  ShoppingCart,
+  Star,
+  Plus,
+  Minus,
+  Share2,
+  Truck,
+  Shield,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  X,
+  MessageCircle,
+  ThumbsUp,
+  ThumbsDown,
+  Flag,
+} from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import LoginModal from "../components/auth/LoginModal.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import CartBar from "../components/layout/CartBar.jsx";
+// Helper function to calculate rating distribution
+const calculateRatingDistribution = (reviews) => {
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  reviews.forEach((review) => {
+    if (review.rating >= 1 && review.rating <= 5) {
+      distribution[review.rating]++;
+    }
+  });
+  return distribution;
+};
+
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return "Date not available";
+  try {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch (error) {
+    return "Date not available";
+  }
+};
+
+const ProductDetailsPage = () => {
+  const { productId } = useParams();
+  const navigate = useNavigate();
+  const { user, isLoggedIn } = useAuth();
+  const cartBarRef = useRef(null);
+
+  const mockProduct = {
+    product_id: 1,
+    product_name: "Premium Wireless Headphones",
+    name: "Premium Wireless Headphones",
+    origin: "Japan",
+    price: 129.99,
+    original_price: 159.99,
+    discount_percentage: 20,
+    rating: 4.4,
+    avg_rating: 4.4,
+    review_count: 6,
+    quantity: 24,
+    is_available: true,
+    is_refundable: true,
+    description:
+      "High-fidelity wireless headphones with noise cancellation, 30-hour battery life, and a lightweight, comfortable fit for long listening sessions.",
+    category_id: 5,
+    variants: [
+      { id: 1, name: "Midnight Black", color: "#111827", price: 129.99 },
+      { id: 2, name: "Arctic White", color: "#F9FAFB", price: 129.99 },
+      { id: 3, name: "Ocean Blue", color: "#2563EB", price: 134.99 },
+    ],
+    images: [
+      {
+        image_id: 1,
+        image_url:
+          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=80",
+      },
+      {
+        image_id: 2,
+        image_url:
+          "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80",
+      },
+      {
+        image_id: 3,
+        image_url:
+          "https://images.unsplash.com/photo-1524678606370-a47ad25cb82a?auto=format&fit=crop&w=1200&q=80",
+      },
+    ],
+    reviews: [
+      {
+        id: 1,
+        user_name: "Rita A.",
+        rating: 5,
+        date: "2025-10-03",
+        comment: "Super comfortable and the ANC is excellent.",
+      },
+      {
+        id: 2,
+        user_name: "Imran K.",
+        rating: 4,
+        date: "2025-09-14",
+        comment: "Sound quality is great; wish the case was smaller.",
+      },
+      {
+        id: 3,
+        user_name: "Fatima S.",
+        rating: 4,
+        date: "2025-08-26",
+        comment: "Battery life matches the claim. Solid build.",
+      },
+      {
+        id: 4,
+        user_name: "Anon",
+        rating: 5,
+        date: "2025-08-07",
+        comment: "Worth the price during the sale.",
+      },
+      {
+        id: 5,
+        user_name: "Tanvir H.",
+        rating: 3,
+        date: "2025-07-21",
+        comment: "Bass is a bit heavy for me, but still good.",
+      },
+      {
+        id: 6,
+        user_name: "Nadia M.",
+        rating: 5,
+        date: "2025-06-30",
+        comment: "Lightweight, clean sound, easy to pair.",
+      },
+    ],
+  };
+
+  const mockCategories = [
+    { category_id: 1, name: "Electronics", parent_id: null },
+    { category_id: 5, name: "Audio", parent_id: 1 },
+  ];
+
+  const [product, setProduct] = useState(null);
+  const [productImages, setProductImages] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [activeTab, setActiveTab] = useState("description");
+  const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState({});
+  const [cartItems, setCartItems] = useState([]);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Loading states and login modal
+  const [isCartLoading, setIsCartLoading] = useState(false);
+  const [isLikesLoading, setIsLikesLoading] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Sidebar and layout state
+  const [selectedProducts, setSelectedProducts] = useState(null);
+  const [categoryPath, setCategoryPath] = useState([]);
+
+  // Log productId for debugging
+  console.log("Product ID:", productId);
+
+  // Mock API calls - replace with actual API endpoints
+  useEffect(() => {
+    const loadMockProduct = () => {
+      setLoading(true);
+      setError(null);
+
+      const productData = {
+        ...mockProduct,
+        product_id: Number(productId) || mockProduct.product_id,
+      };
+
+      setProduct(productData);
+      setCategories(mockCategories);
+      setProductImages(productData.images || []);
+      setReviews(productData.reviews || []);
+
+      const totalReviews = productData.reviews.length;
+      if (totalReviews > 0) {
+        const totalRating = productData.reviews.reduce(
+          (sum, review) => sum + review.rating,
+          0,
+        );
+        const avgRating = totalRating / totalReviews;
+        setReviewStats({
+          totalReviews,
+          total_reviews: totalReviews,
+          averageRating: avgRating,
+          average_rating: avgRating,
+          ratingDistribution: calculateRatingDistribution(productData.reviews),
+          rating_distribution: calculateRatingDistribution(productData.reviews),
+        });
+      } else {
+        setReviewStats({
+          totalReviews: 0,
+          total_reviews: 0,
+          averageRating: 0,
+          average_rating: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          rating_distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        });
+      }
+
+      setLoading(false);
+    };
+
+    if (productId) loadMockProduct();
+  }, [productId]);
+
+  // Check if product is favorited when component loads or user logs in
+  useEffect(() => {
+    if (isLoggedIn && user && user.user_id && product && product.product_id) {
+      checkIfLiked();
+    }
+  }, [isLoggedIn, user, product?.product_id]);
+
+  // Close login modal when user successfully logs in
+  useEffect(() => {
+    if (isLoggedIn && showLoginModal) {
+      setShowLoginModal(false);
+    }
+  }, [isLoggedIn, showLoginModal]);
+
+  const checkIfLiked = async () => {
+    setIsFavorite(false);
+  };
+
+  const handleAddToCart = async () => {
+    if (quantity === 0) return;
+
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    setIsCartLoading(true);
+    setTimeout(() => {
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+
+      if (cartBarRef.current && cartBarRef.current.refreshCart) {
+        cartBarRef.current.refreshCart();
+      }
+      setIsCartLoading(false);
+    }, 600);
+  };
+
+  const handleCategorySelect = (category, path) => {
+    setCategoryPath(path);
+    // Navigate to category products page
+    navigate(`/category/${category.category_id}`);
+  };
+
+  const handleProductsView = (products, path) => {
+    setSelectedProducts(products);
+    setCategoryPath(path);
+  };
+
+  const handleFavoritesView = () => {
+    navigate("/favorites");
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (!user || !user.user_id) {
+      console.error("User data is not available:", user);
+      showWarning("Login Required", "Please log in again to manage favorites");
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (!product || !product.product_id) {
+      console.error("Product data is not available:", product);
+      showError("Product Error", "Product information is missing");
+      return;
+    }
+
+    setIsLikesLoading(true);
+    setTimeout(() => {
+      setIsFavorite(!isFavorite);
+      showSuccess(
+        "Favorites Updated!",
+        isFavorite ? "Removed from favorites" : "Added to favorites",
+      );
+      setIsLikesLoading(false);
+    }, 400);
+  };
+
+  const handleQuantityChange = (change) => {
+    const newQuantity = quantity + change;
+    const maxQuantity = product?.quantity || 999; // Default to 999 if quantity is undefined
+    if (newQuantity >= 1 && newQuantity <= maxQuantity) {
+      setQuantity(newQuantity);
+    }
+  };
+
+  const handleImageNavigation = (direction) => {
+    if (direction === "prev") {
+      setSelectedImageIndex(
+        selectedImageIndex > 0
+          ? selectedImageIndex - 1
+          : productImages.length - 1,
+      );
+    } else {
+      setSelectedImageIndex(
+        selectedImageIndex < productImages.length - 1
+          ? selectedImageIndex + 1
+          : 0,
+      );
+    }
+  };
+
+  const renderStars = (rating) => {
+    const numericRating = parseFloat(rating) || 0;
+    return [...Array(5)].map((_, i) => (
+      <Star
+        key={i}
+        className={`w-4 h-4 ${
+          i < Math.floor(numericRating)
+            ? "fill-yellow-400 text-yellow-400"
+            : "text-gray-300"
+        }`}
+      />
+    ));
+  };
+
+  const renderBreadcrumb = () => {
+    const breadcrumbPath = categories.filter(
+      (cat) =>
+        cat.category_id === product.category_id ||
+        categories.some((c) => c.parent_id === cat.category_id),
+    );
+
+    return (
+      <nav className="flex mb-4 text-sm text-gray-600">
+        <a href="/" className="hover:text-blue-600">
+          Home
+        </a>
+        {breadcrumbPath.map((cat, index) => (
+          <React.Fragment key={cat.category_id}>
+            <span className="mx-2">/</span>
+            <a
+              href={`/category/${cat.category_id}`}
+              className="hover:text-blue-600"
+            >
+              {cat.name}
+            </a>
+          </React.Fragment>
+        ))}
+      </nav>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) return null;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+
+      {/* CartBar Component */}
+      <CartBar ref={cartBarRef} />
+
+      <div
+        className={`transition-all duration-300 } min-h-screen bg-gray-50`}
+      >
+        {/* Success Message */}
+        {showSuccessMessage && (
+          <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center">
+            <Check className="w-5 h-5 mr-2" />
+            Added to cart successfully!
+          </div>
+        )}
+
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          {renderBreadcrumb()}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Product Images */}
+            <div className="space-y-4">
+              <div className="relative bg-white rounded-lg shadow-sm overflow-hidden">
+                <img
+                  src={productImages[selectedImageIndex]?.image_url}
+                  alt={product.name}
+                  className="w-full h-96 object-cover"
+                />
+                {productImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => handleImageNavigation("prev")}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleImageNavigation("next")}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Image Thumbnails */}
+              <div className="flex space-x-2 overflow-x-auto">
+                {productImages.map((image, index) => (
+                  <button
+                    key={image.image_id}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                      selectedImageIndex === index
+                        ? "border-blue-500"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    <img
+                      src={image.image_url}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Product Information */}
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {product.product_name ||
+                    product.name ||
+                    "Product Name Not Available"}
+                </h1>
+                <p className="text-gray-600 mb-4">
+                  Origin: {product.origin || "Origin not specified"}
+                </p>
+
+                {/* Rating */}
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="flex">
+                    {renderStars(product.rating || product.avg_rating || 0)}
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    ({product.review_count || 0} reviews)
+                  </span>
+                </div>
+
+                {/* Price */}
+                <div className="flex items-center space-x-3 mb-6">
+                  <span className="text-3xl font-bold text-gray-900">
+                    ৳
+                    {(
+                      parseFloat(selectedVariant?.price) ||
+                      parseFloat(product.price) ||
+                      0
+                    ).toFixed(2)}
+                  </span>
+                  {product.discount_percentage &&
+                    product.discount_percentage > 0 && (
+                      <>
+                        <span className="text-lg text-gray-500 line-through">
+                          ৳
+                          {(parseFloat(product.original_price) || 0).toFixed(2)}
+                        </span>
+                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
+                          -{product.discount_percentage}%
+                        </span>
+                      </>
+                    )}
+                </div>
+              </div>
+
+              {/* Variants */}
+              {product.variants && product.variants.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Color Options</h3>
+                  <div className="flex space-x-3">
+                    {product.variants.map((variant) => (
+                      <button
+                        key={variant.id}
+                        onClick={() => setSelectedVariant(variant)}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg border ${
+                          selectedVariant?.id === variant.id
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-300 hover:border-gray-400"
+                        }`}
+                      >
+                        <div
+                          className="w-6 h-6 rounded-full border"
+                          style={{ backgroundColor: variant.color }}
+                        ></div>
+                        <span>{variant.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div>
+                <h3 className="text-lg text-black font-semibold mb-3">
+                  Quantity
+                </h3>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center border rounded-lg">
+                    <button
+                      onClick={() => handleQuantityChange(-1)}
+                      className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="w-4 h-4 text-black" />
+                    </button>
+                    <span className="px-4 py-2 font-medium text-black min-w-[3rem] text-center">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => handleQuantityChange(1)}
+                      className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={quantity >= (product?.quantity || 999)}
+                    >
+                      <Plus className="w-4 h-4 text-black" />
+                    </button>
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {product?.quantity || "In stock"} available
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={
+                    isCartLoading ||
+                    product?.is_available === false ||
+                    (product?.quantity && product.quantity === 0) ||
+                    quantity === 0
+                  }
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  <span>{isCartLoading ? "Adding..." : "Add to Cart"}</span>
+                </button>
+
+                <button
+                  onClick={handleToggleFavorite}
+                  disabled={isLikesLoading}
+                  className={`p-3 rounded-lg border transition-colors ${
+                    isFavorite
+                      ? "bg-red-50 border-red-300 text-red-600"
+                      : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                  } ${isLikesLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <Heart
+                    className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`}
+                  />
+                </button>
+
+                {/* <button className="p-3 rounded-lg border bg-white border-gray-300 text-gray-600 hover:bg-gray-50">
+                <Share2 className="w-5 h-5" />
+              </button> */}
+              </div>
+
+              {/* Product Features */}
+              <div className="space-y-3 pt-6 border-t">
+                {/* <div className="flex items-center space-x-3">
+                  <Truck className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700">
+                    Free shipping on orders over ৳50
+                  </span>
+                </div> */}
+                {product.is_refundable && (
+                  <div className="flex items-center space-x-3">
+                    <RotateCcw className="w-5 h-5 text-green-600" />
+                    <span className="text-sm text-gray-700">
+                      30-day return policy
+                    </span>
+                  </div>
+                )}
+                {/* <div className="flex items-center space-x-3">
+                  <Shield className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700">
+                    {product.warranty} warranty
+                  </span>
+                </div> */}
+              </div>
+            </div>
+          </div>
+
+          {/* Product Details Tabs */}
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="border-b">
+              <nav className="flex space-x-8 px-6">
+                {["description", "specifications", "reviews"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`py-4 font-medium capitalize ${
+                      activeTab === tab
+                        ? "border-b-2 border-blue-500 text-blue-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="p-6">
+              {activeTab === "description" && (
+                <div className="prose max-w-none">
+                  <p className="text-gray-700 leading-relaxed">
+                    {product.description
+                      ? showFullDescription
+                        ? product.description
+                        : product.description.substring(0, 200) +
+                          (product.description.length > 200 ? "..." : "")
+                      : "No description available for this product."}
+                  </p>
+                  {product.description && product.description.length > 200 && (
+                    <button
+                      onClick={() =>
+                        setShowFullDescription(!showFullDescription)
+                      }
+                      className="text-blue-600 hover:text-blue-700 mt-2"
+                    >
+                      {showFullDescription ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "specifications" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-black">
+                      Product Details
+                    </h4>
+                    <dl className="space-y-2">
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Name:</dt>
+                        <dd className="text-black font-medium">
+                          {product.product_name || product.name || "N/A"}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Price:</dt>
+                        <dd className="text-black font-medium">
+                          ৳{parseFloat(product.price || 0).toFixed(2)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Origin:</dt>
+                        <dd className="text-black font-medium">
+                          {product.origin || "Not specified"}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Quantity Available:</dt>
+                        <dd className="text-black font-medium">
+                          {product.quantity || "In stock"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-3 text-black">
+                      Product Status
+                    </h4>
+                    <dl className="space-y-2">
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Available:</dt>
+                        <dd>
+                          <span
+                            className={`px-2 py-1 rounded text-sm font-medium ${
+                              product.is_available
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {product.is_available ? "In Stock" : "Out of Stock"}
+                          </span>
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Refundable:</dt>
+                        <dd>
+                          <span
+                            className={`px-2 py-1 rounded text-sm font-medium ${
+                              product.is_refundable
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {product.is_refundable ? "Yes" : "No"}
+                          </span>
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Rating:</dt>
+                        <dd className="flex items-center space-x-2">
+                          <span className="text-black font-medium">
+                            {parseFloat(
+                              product.rating || product.avg_rating || 0,
+                            ).toFixed(1)}
+                          </span>
+                          <div className="flex">
+                            {renderStars(
+                              product.rating || product.avg_rating || 0,
+                            )}
+                          </div>
+                        </dd>
+                      </div>
+                      {product.discount_percentage &&
+                        product.discount_percentage > 0 && (
+                          <div className="flex justify-between">
+                            <dt className="text-gray-600">Discount:</dt>
+                            <dd>
+                              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
+                                {product.discount_percentage}% OFF
+                              </span>
+                            </dd>
+                          </div>
+                        )}
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Reviews:</dt>
+                        <dd className="text-black font-medium">
+                          {product.review_count || 0} reviews
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "reviews" && (
+                <div className="space-y-6">
+                  {console.log("Current reviewStats:", reviewStats)}{" "}
+                  {/* Debug log */}
+                  {console.log("Current reviews:", reviews)} {/* Debug log */}
+                  {/* Review Summary */}
+                  <div className="flex items-start space-x-8">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-gray-900">
+                        {reviewStats.average_rating || "0.0"}
+                      </div>
+                      <div className="flex justify-center mt-1">
+                        {renderStars(reviewStats.average_rating || 0)}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {reviewStats.total_reviews || 0} reviews
+                      </div>
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      {reviewStats.rating_distribution &&
+                      Object.entries(reviewStats.rating_distribution).length >
+                        0 ? (
+                        Object.entries(reviewStats.rating_distribution)
+                          .reverse()
+                          .map(([rating, count]) => (
+                            <div
+                              key={rating}
+                              className="flex items-center space-x-3"
+                            >
+                              <span className="text-sm w-6">{rating}★</span>
+                              <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-yellow-400 h-2 rounded-full"
+                                  style={{
+                                    width: `${
+                                      (count /
+                                        (reviewStats.total_reviews || 1)) *
+                                      100
+                                    }%`,
+                                  }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-gray-600 w-8">
+                                {count}
+                              </span>
+                            </div>
+                          ))
+                      ) : (
+                        <div className="text-gray-500 text-center py-4">
+                          No rating distribution available
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Reviews List */}
+                  <div className="space-y-4">
+                    {reviews && reviews.length > 0 ? (
+                      reviews.map((review) => (
+                        <div key={review.id} className="border rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium text-black">
+                                  {review.user_name || "Anonymous"}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <div className="flex">
+                                  {renderStars(review.rating || 0)}
+                                </div>
+                                <span className="text-sm text-gray-600">
+                                  {formatDate(review.date)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-gray-700 mb-3">
+                            {review.comment || "No comment provided"}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No reviews yet
+                        </h3>
+                        <p className="text-gray-500">
+                          Be the first to review this product!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
+
+
+
+    </div>
+  );
+};
+
+export default ProductDetailsPage;

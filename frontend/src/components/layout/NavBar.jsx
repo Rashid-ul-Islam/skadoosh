@@ -4,16 +4,92 @@ import { Search, X, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, Heart, User, PackageSearch, Shield } from "lucide-react";
 import { Button } from "../ui/button.jsx";
-import { Input } from "../ui/input.jsx";
 import LoginModal from "../auth/LoginModal.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import EnhancedSearchBar from "../common/EnhancedSearchBar.jsx";
-import UserNotification from "../common/UserNotification.jsx";
 
+// ---------------------------------------------------------------------------
+// Mock data — replaces all API calls
+// ---------------------------------------------------------------------------
+
+// Simulated cart: { [user_id]: totalQuantity }
+const MOCK_CART_COUNTS = { 1: 3, 2: 7 };
+
+// Product catalog used for quick search
+const MOCK_PRODUCTS = [
+  {
+    id: 1,
+    name: "Fresh Tomatoes",
+    price: "45.00",
+    category_name: "Vegetables",
+    image_url: "https://placehold.co/48x48?text=🍅",
+  },
+  {
+    id: 2,
+    name: "Basmati Rice (5 kg)",
+    price: "320.00",
+    category_name: "Grains",
+    image_url: "https://placehold.co/48x48?text=🌾",
+  },
+  {
+    id: 3,
+    name: "Organic Eggs (12 pc)",
+    price: "135.00",
+    category_name: "Dairy",
+    image_url: "https://placehold.co/48x48?text=🥚",
+  },
+  {
+    id: 4,
+    name: "Sunflower Oil (1 L)",
+    price: "195.00",
+    category_name: "Oils",
+    image_url: "https://placehold.co/48x48?text=🫙",
+  },
+  {
+    id: 5,
+    name: "Green Chili",
+    price: "30.00",
+    category_name: "Vegetables",
+    image_url: "https://placehold.co/48x48?text=🌶️",
+  },
+  {
+    id: 6,
+    name: "Lentil (Masoor Dal)",
+    price: "110.00",
+    category_name: "Pulses",
+    image_url: "https://placehold.co/48x48?text=🫘",
+  },
+  {
+    id: 7,
+    name: "Chicken Breast",
+    price: "280.00",
+    category_name: "Meat",
+    image_url: "https://placehold.co/48x48?text=🍗",
+  },
+  {
+    id: 8,
+    name: "Mango (Fazlee)",
+    price: "90.00",
+    category_name: "Fruits",
+    image_url: "https://placehold.co/48x48?text=🥭",
+  },
+];
+
+// Client-side quick search — filters MOCK_PRODUCTS by query
+function mockQuickSearch(query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return [];
+  return MOCK_PRODUCTS.filter(
+    (p) =>
+      p.name.toLowerCase().includes(q) ||
+      p.category_name.toLowerCase().includes(q),
+  ).slice(0, 5);
+}
+
+// ---------------------------------------------------------------------------
+// NavBar
+// ---------------------------------------------------------------------------
 export default function NavBar() {
   const { user, isLoggedIn, logout: authLogout } = useAuth();
-  // const [isAdmin, setIsAdmin] = useState(false);
-  // const [setUser] = useState(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,69 +98,46 @@ export default function NavBar() {
   const [searchLoading, setSearchLoading] = useState(false);
   const searchRef = useRef(null);
   const navigate = useNavigate();
+
   const isAdmin = user?.role_id === "admin";
   const isDeliveryBoy = user?.role_id === "delivery_boy";
-  const fetchCartCount = async () => {
-    if (!isLoggedIn || !user) return;
 
-    try {
-      const response = await fetch(
-        `http://localhost:3000/api/cart/getCart/${user.user_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const count =
-          data.data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-        setCartItemCount(count);
-      }
-    } catch (error) {
-      console.error("Error fetching cart count:", error);
+  // ------------------------------------------------------------------
+  // Cart count — read from mock data instead of API
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      const count = MOCK_CART_COUNTS[user.user_id] ?? 0;
+      setCartItemCount(count);
+    } else {
+      setCartItemCount(0);
     }
-  };
-  const fetchQuickSearch = async (query) => {
+  }, [isLoggedIn, user]);
+
+  // ------------------------------------------------------------------
+  // Quick search — filter mock products instead of API
+  // ------------------------------------------------------------------
+  const fetchQuickSearch = (query) => {
     if (!query.trim()) {
       setSearchResults([]);
       setShowResults(false);
       return;
     }
-
     setSearchLoading(true);
-    try {
-      const response = await fetch(
-        `http://localhost:3000/api/search/quickSearch?q=${encodeURIComponent(
-          query,
-        )}`,
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setSearchResults(data.suggestions);
-          setShowResults(true);
-        }
-      }
-    } catch (error) {
-      console.error("Quick search error:", error);
-    } finally {
+    // Simulate a short async delay
+    setTimeout(() => {
+      const results = mockQuickSearch(query);
+      setSearchResults(results);
+      setShowResults(true);
       setSearchLoading(false);
-    }
+    }, 200);
   };
 
   const handleSearchInput = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-
-    // Debounce search
     clearTimeout(window.searchTimeout);
-    window.searchTimeout = setTimeout(() => {
-      fetchQuickSearch(value);
-    }, 300);
+    window.searchTimeout = setTimeout(() => fetchQuickSearch(value), 300);
   };
 
   const handleSearchSubmit = (e) => {
@@ -101,76 +154,40 @@ export default function NavBar() {
     navigate(`/product/${productId}`);
   };
 
-  // Handle click outside to close results
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowResults(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = async (e) => {
+  // Search form submit (saves history in real app; skipped here)
+  const handleSearch = (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
-
-    try {
-      // Save search to history if user is logged in
-      if (isLoggedIn && user) {
-        await fetch("http://localhost:3000/api/search/saveSearchHistory", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            user_id: user.user_id,
-            search_query: searchTerm,
-          }),
-        });
-      }
-
-      // Navigate to search results page
-      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
-    } catch (error) {
-      console.error("Error saving search history:", error);
-      // Still navigate even if saving fails
-      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
-    }
+    navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
   };
 
-  // Clear search input
   const clearSearch = () => {
     setSearchTerm("");
+    setSearchResults([]);
+    setShowResults(false);
   };
 
-  // Check if user is logged in on component mount
-  useEffect(() => {
-    if (isLoggedIn && user) {
-      fetchCartCount();
-    } else {
-      setCartItemCount(0);
-    }
-  }, [isLoggedIn, user]);
-
-  // Handle login success
   const handleLoginSuccess = (userData) => {
     console.log("Login success in NavBar:", userData);
     setIsLoginModalOpen(false);
   };
 
-  // Handle logout
   const handleLogout = () => {
-    authLogout(); // Use the global logout function
+    authLogout();
     window.location.href = "/";
   };
 
-  // Get current path for modal navigation logic
   const currentPath = window.location.pathname;
 
   return (
@@ -190,7 +207,7 @@ export default function NavBar() {
             </span>
           </Link>
 
-          {/* Enhanced Search bar */}
+          {/* Search bar */}
           <div className="flex-1 max-w-2xl mx-8 relative" ref={searchRef}>
             <form onSubmit={handleSearchSubmit} className="relative">
               <div className="relative group">
@@ -205,11 +222,7 @@ export default function NavBar() {
                 {searchTerm && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setSearchResults([]);
-                      setShowResults(false);
-                    }}
+                    onClick={clearSearch}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-red-400 transition-all duration-300 hover:scale-110 hover:rotate-90"
                   >
                     <X className="w-5 h-5" />
@@ -280,7 +293,7 @@ export default function NavBar() {
 
           {/* Right-side controls */}
           <div className="flex items-center gap-8 text-white">
-            {/* Admin Panel - Only show if user is admin */}
+            {/* Admin Panel */}
             {isAdmin && (
               <Link
                 to="/admin"
@@ -291,6 +304,7 @@ export default function NavBar() {
               </Link>
             )}
 
+            {/* Delivery Boy */}
             {isDeliveryBoy && (
               <Link
                 to="/delivery"
@@ -301,7 +315,7 @@ export default function NavBar() {
               </Link>
             )}
 
-            {/* Orders - Only show if logged in */}
+            {/* Orders */}
             {isLoggedIn && (
               <Link
                 to="/orders"
@@ -312,10 +326,21 @@ export default function NavBar() {
               </Link>
             )}
 
-            {/* Notifications - Only show if logged in */}
-            {isLoggedIn && <UserNotification />}
+            {/* Cart */}
+            <Link
+              to="/cart"
+              className="relative hover:text-emerald-400 transition-all duration-300 hover:scale-110 group"
+              title="Cart"
+            >
+              <ShoppingCart className="w-7 h-7 group-hover:drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
 
-            {/* User Menu (on hover) */}
+            {/* User dropdown */}
             <div className="relative group">
               <Button
                 variant="ghost"
@@ -357,7 +382,6 @@ export default function NavBar() {
                     >
                       My Orders
                     </Link>
-
                     <Link
                       to="/wallet"
                       className="block hover:bg-slate-700/70 px-4 py-2 cursor-pointer transition-all duration-300 text-white hover:text-emerald-400 hover:translate-x-1"
