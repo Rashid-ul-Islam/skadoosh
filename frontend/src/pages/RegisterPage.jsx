@@ -32,6 +32,8 @@ import LoginModal from "../components/auth/LoginModal";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Input } from "../components/ui/input.jsx";
+import Notification from "../components/common/Notification.jsx";
+import useNotification from "../components/hooks/useNotification.js";
 
 // Fix Leaflet default marker icon broken by bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -108,6 +110,13 @@ function buildStreetAddress(nominatimData) {
 }
 
 export default function RegisterPage() {
+  const {
+    notification,
+    showSuccess,
+    showError,
+    showWarning,
+    hideNotification,
+  } = useNotification();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -287,7 +296,11 @@ export default function RegisterPage() {
 
       const data = await response.json();
       if (response.ok) {
-        alert(data.message);
+        showSuccess(
+          "Success",
+          data.message ||
+            "Account created! Please verify your email before logging in.",
+        );
 
         navigate("/check-email", {
           state: {
@@ -303,7 +316,10 @@ export default function RegisterPage() {
           if (data.errors) {
             setErrors(data.errors);
           } else {
-            alert(data.error);
+            showError(
+              "Error",
+              data.error || "An error occurred during registration.",
+            );
           }
 
           return;
@@ -311,7 +327,7 @@ export default function RegisterPage() {
       }
     } catch (error) {
       console.error("Registration failed:", error);
-      alert("Something went wrong. Please try again later.");
+      showError("Error", "Something went wrong. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -561,8 +577,14 @@ export default function RegisterPage() {
                 </div>
 
                 <MapContainer
-                  key={mapCoords ? `${mapCoords.lat}-${mapCoords.lng}` : "default"}
-                  center={mapCoords ? [mapCoords.lat, mapCoords.lng] : [23.8103, 90.4125]}
+                  key={
+                    mapCoords ? `${mapCoords.lat}-${mapCoords.lng}` : "default"
+                  }
+                  center={
+                    mapCoords
+                      ? [mapCoords.lat, mapCoords.lng]
+                      : [23.8103, 90.4125]
+                  }
                   zoom={mapCoords ? 16 : 12}
                   style={{ height: "320px", width: "100%" }}
                   scrollWheelZoom={true}
@@ -684,6 +706,13 @@ export default function RegisterPage() {
             </button>
           </div>
         </div>
+        <Notification
+          show={notification.show}
+          type={notification.type}
+          title={notification.title}
+          message={notification.message}
+          onClose={hideNotification}
+        />
       </div>
 
       {/* Login Modal */}
