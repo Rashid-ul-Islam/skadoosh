@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Eye,
@@ -14,11 +14,97 @@ import {
   ShoppingCart,
   Leaf,
   Star,
+  Navigation,
+  Loader2,
 } from "lucide-react";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import LoginModal from "../components/auth/LoginModal";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Input } from "../components/ui/input.jsx";
+
+// Fix Leaflet default marker icon broken by bundlers
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+// Custom green marker icon for the selected location
+const greenIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// Component to fly/pan map to new coords
+function MapController({ coords }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (coords) {
+      map.flyTo([coords.lat, coords.lng], 16, { duration: 1.2 });
+    }
+  }, [coords, map]); // already correct
+
+  // Add this — fly immediately on mount if coords exist
+  useEffect(() => {
+    if (coords) {
+      map.setView([coords.lat, coords.lng], 16);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
+// Component to handle click on map to pick a location
+function MapClickHandler({ onLocationPick }) {
+  useMapEvents({
+    click(e) {
+      onLocationPick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+// Reverse geocode using Nominatim (free, no API key)
+async function reverseGeocode(lat, lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+  const res = await fetch(url, {
+    headers: { "Accept-Language": "en" },
+  });
+  if (!res.ok) throw new Error("Geocoding failed");
+  return res.json();
+}
+
+function buildStreetAddress(nominatimData) {
+  const a = nominatimData?.address || {};
+  const parts = [
+    a.house_number,
+    a.road || a.pedestrian || a.footway || a.path,
+    a.suburb || a.neighbourhood || a.quarter,
+    a.city || a.town || a.village || a.county,
+  ].filter(Boolean);
+  return parts.join(", ") || nominatimData.display_name || "";
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -26,7 +112,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -34,47 +119,26 @@ export default function RegisterPage() {
     lastName: "",
     phoneNumber: "",
     address: "",
-    location: "",
+    // location stores { lat, lng } as an object; serialised to string for display/validation
+    location: null,
   });
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [mapCoords, setMapCoords] = useState(null); // { lat, lng }
+  const [showMap, setShowMap] = useState(false);
 
-  // API data states
+  // ── helpers ─────────────────────────────────────────────────────────────────
 
-  // Check username availability
-  const checkUsernameAvailability = async (username) => {
-    if (!username || username.length < 3) return;
-    try {
-      const response = await fetch(
-        `http://localhost:3000/api/auth/check-username/${encodeURIComponent(
-          username,
-        )}`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (!data.available) {
-          setErrors((prev) => ({
-            ...prev,
-            username: "Username is already taken",
-          }));
-        }
-      }
-    } catch (error) {
-      console.error("Error checking username:", error);
-    }
-  };
-
-  // Check email availability
   const checkEmailAvailability = async (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) return;
     try {
       const response = await fetch(
-        `http://localhost:3000/api/auth/check-email/${encodeURIComponent(
-          email,
-        )}`,
+        `http://localhost:3000/api/auth/check-email/${encodeURIComponent(email)}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -96,34 +160,77 @@ export default function RegisterPage() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-
-    // Check availability for username and email with debounce
-    if (name === "username") {
-      clearTimeout(window.usernameTimeout);
-      window.usernameTimeout = setTimeout(() => {
-        checkUsernameAvailability(value);
-      }, 500);
-    } else if (name === "email") {
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    if (name === "email") {
       clearTimeout(window.emailTimeout);
-      window.emailTimeout = setTimeout(() => {
-        checkEmailAvailability(value);
-      }, 500);
+      window.emailTimeout = setTimeout(
+        () => checkEmailAvailability(value),
+        500,
+      );
     }
   };
 
+  // Apply a picked lat/lng: reverse geocode → fill address field
+  const applyCoords = async (lat, lng) => {
+    setLocationLoading(true);
+    setLocationError("");
+    const coords = { lat, lng };
+    setMapCoords(coords);
+    setShowMap(true);
+
+    try {
+      const geoData = await reverseGeocode(lat, lng);
+      const streetAddr = buildStreetAddress(geoData);
+      setFormData((prev) => ({
+        ...prev,
+        address: streetAddr,
+        location: coords,
+      }));
+      setErrors((prev) => ({ ...prev, address: "", location: "" }));
+    } catch (err) {
+      setLocationError("Could not retrieve address. You can type it manually.");
+      setFormData((prev) => ({ ...prev, location: coords }));
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // "Use Current Location" button
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError("");
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        await applyCoords(position.coords.latitude, position.coords.longitude);
+      },
+      (err) => {
+        setLocationLoading(false);
+        setLocationError(
+          err.code === 1
+            ? "Location permission denied. Please allow access or pick on the map."
+            : "Unable to retrieve your location. Try picking on the map.",
+        );
+        // Still show map so user can pick manually
+        setShowMap(true);
+        // Default to a central world view if no coords yet
+        if (!mapCoords) setMapCoords({ lat: 23.8103, lng: 90.4125 }); // Dhaka default
+      },
+    );
+  };
+
+  // Map click handler
+  const handleMapClick = async (lat, lng) => {
+    await applyCoords(lat, lng);
+  };
+
+  // ── validation ───────────────────────────────────────────────────────────────
+
   const validateForm = () => {
     const newErrors = {};
-
-    // Required field validation
-    if (!formData.username.trim()) newErrors.username = "Username is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
     if (!formData.password) newErrors.password = "Password is required";
     if (!formData.confirmPassword)
@@ -135,88 +242,60 @@ export default function RegisterPage() {
       newErrors.phoneNumber = "Phone number is required";
     if (!formData.address.trim())
       newErrors.address = "Street address is required";
-    if (!formData.location.trim()) newErrors.location = "Location is required";
+    if (!formData.location)
+      newErrors.location = "Please pick a location on the map";
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (formData.email && !emailRegex.test(formData.email)) {
+    if (formData.email && !emailRegex.test(formData.email))
       newErrors.email = "Please enter a valid email address";
-    }
 
-    // Password validation
-    if (formData.password && formData.password.length < 6) {
+    if (formData.password && formData.password.length < 6)
       newErrors.password = "Password must be at least 6 characters long";
-    }
 
-    // Password confirmation
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
-    }
 
-    // Phone number validation
     const phoneRegex = /^[0-9+\-\s()]+$/;
-    if (formData.phoneNumber && !phoneRegex.test(formData.phoneNumber)) {
+    if (formData.phoneNumber && !phoneRegex.test(formData.phoneNumber))
       newErrors.phoneNumber = "Please enter a valid phone number";
-    }
-
-    // Username validation
-    if (formData.username && formData.username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters long";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // ── submit ───────────────────────────────────────────────────────────────────
+
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
       const response = await fetch("http://localhost:3000/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: formData.username,
           email: formData.email,
           password: formData.password,
           firstName: formData.firstName,
           lastName: formData.lastName,
           phoneNumber: formData.phoneNumber,
-          divisionId: parseInt(formData.divisionId),
-          districtId: parseInt(formData.districtId),
-          cityId: parseInt(formData.cityId),
-          regionId: parseInt(formData.regionId),
           address: formData.address,
+          location: formData.location, // { lat, lng }
         }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        // Save auth in context + localStorage so it persists across pages.
         login(data.user, data.token);
-        showSuccess(
-          "Registration Successful!",
-          "Welcome to GroCart! You have been successfully registered.",
-        );
-        // Navigate to HomePage after successful registration
         navigate("/");
       } else {
-        showError(
-          "Registration Failed",
-          data.error || "Please check your information and try again.",
+        alert(
+          data.error || "Registration failed. Please check your information.",
         );
       }
     } catch (error) {
       console.error("Registration failed:", error);
-      showError(
-        "Registration Failed",
-        "Something went wrong. Please try again later.",
-      );
+      alert("Something went wrong. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -227,12 +306,13 @@ export default function RegisterPage() {
     navigate("/");
   };
 
+  // ── render ───────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-400 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
-        {/* Simplified Header Box */}
+        {/* ── Header ── */}
         <div className="bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 p-12 text-center relative overflow-hidden">
-          {/* Animated Background Elements */}
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-8 left-12 text-6xl animate-bounce">
               🥕
@@ -253,10 +333,7 @@ export default function RegisterPage() {
               🍞
             </div>
           </div>
-
-          {/* Main Content */}
           <div className="relative z-10">
-            {/* Enhanced Logo */}
             <div className="flex items-center justify-center mb-6">
               <div className="bg-white/25 backdrop-blur-lg rounded-full p-6 mr-6 border-3 border-white/40 shadow-2xl">
                 <div className="flex items-center justify-center relative">
@@ -277,8 +354,6 @@ export default function RegisterPage() {
                 </div>
               </div>
             </div>
-
-            {/* Simple Description */}
             <div className="max-w-2xl mx-auto">
               <p className="text-green-50 text-2xl font-semibold leading-relaxed">
                 Create your account
@@ -287,29 +362,8 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Form Section */}
+        {/* ── Form Section ── */}
         <div className="p-10 space-y-6">
-          {/* Username */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 flex items-center">
-              <User className="w-4 h-4 mr-2 text-green-600" />
-              Username
-            </label>
-            <Input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              placeholder="Choose a unique username"
-              className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.username ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.username && (
-              <p className="text-red-500 text-sm">{errors.username}</p>
-            )}
-          </div>
-
           {/* Email */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center">
@@ -322,9 +376,7 @@ export default function RegisterPage() {
               value={formData.email}
               onChange={handleInputChange}
               placeholder="Enter your email address"
-              className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.email ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${errors.email ? "border-red-500" : "border-gray-300"}`}
             />
             {errors.email && (
               <p className="text-red-500 text-sm">{errors.email}</p>
@@ -343,9 +395,7 @@ export default function RegisterPage() {
                 value={formData.firstName}
                 onChange={handleInputChange}
                 placeholder="First name"
-                className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                  errors.firstName ? "border-red-500" : "border-gray-300"
-                }`}
+                className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.firstName && (
                 <p className="text-red-500 text-sm">{errors.firstName}</p>
@@ -361,9 +411,7 @@ export default function RegisterPage() {
                 value={formData.lastName}
                 onChange={handleInputChange}
                 placeholder="Last name"
-                className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                  errors.lastName ? "border-red-500" : "border-gray-300"
-                }`}
+                className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.lastName && (
                 <p className="text-red-500 text-sm">{errors.lastName}</p>
@@ -383,9 +431,7 @@ export default function RegisterPage() {
               value={formData.phoneNumber}
               onChange={handleInputChange}
               placeholder="Enter your phone number"
-              className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.phoneNumber ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${errors.phoneNumber ? "border-red-500" : "border-gray-300"}`}
             />
             {errors.phoneNumber && (
               <p className="text-red-500 text-sm">{errors.phoneNumber}</p>
@@ -406,9 +452,7 @@ export default function RegisterPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Create a strong password"
-                  className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                    errors.password ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${errors.password ? "border-red-500" : "border-gray-300"}`}
                 />
                 <button
                   type="button"
@@ -437,11 +481,7 @@ export default function RegisterPage() {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   placeholder="Confirm your password"
-                  className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                    errors.confirmPassword
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${errors.confirmPassword ? "border-red-500" : "border-gray-300"}`}
                 />
                 <button
                   type="button"
@@ -461,32 +501,141 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Location Fields */}
+          {/* ── Delivery Address Section ── */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800 flex items-center">
               <MapPin className="w-5 h-5 mr-2 text-green-600" />
               Delivery Address
             </h3>
 
-            {/* Street Address */}
+            {/* Use Current Location Button */}
+            <Button
+              type="button"
+              onClick={getCurrentLocation}
+              disabled={locationLoading}
+              className="h-12 bg-gradient-to-r from-blue-800 to-blue-500 hover:from-blue-500 hover:to-blue-900 hover:shadow-xl hover:scale-102 rounded-lg flex items-center gap-2 px-5 text-white"
+            >
+              {locationLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Navigation className="w-4 h-4" />
+              )}
+              {locationLoading ? "Detecting location…" : "Use Current Location"}
+            </Button>
+
+            {/* Location error hint */}
+            {locationError && (
+              <p className="text-amber-600 text-sm flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {locationError}
+              </p>
+            )}
+
+            {/* ── Leaflet Map ── */}
+            {showMap && (
+              <div className="rounded-xl overflow-hidden border-2 border-green-200 shadow-md">
+                {/* Map hint */}
+                <div className="bg-green-50 border-b border-green-200 px-4 py-2 text-sm text-green-700 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
+                  <span>
+                    {mapCoords
+                      ? "Drag the map or click anywhere to update your delivery location."
+                      : "Click on the map to select your location."}
+                  </span>
+                </div>
+
+                <MapContainer
+                  key={mapCoords ? `${mapCoords.lat}-${mapCoords.lng}` : "default"}
+                  center={mapCoords ? [mapCoords.lat, mapCoords.lng] : [23.8103, 90.4125]}
+                  zoom={mapCoords ? 16 : 12}
+                  style={{ height: "320px", width: "100%" }}
+                  scrollWheelZoom={true}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+
+                  {/* Fly to new coords when they change */}
+                  {mapCoords && <MapController coords={mapCoords} />}
+
+                  {/* Click anywhere to pick a new location */}
+                  <MapClickHandler onLocationPick={handleMapClick} />
+
+                  {/* Marker at selected location */}
+                  {mapCoords && (
+                    <Marker
+                      position={[mapCoords.lat, mapCoords.lng]}
+                      icon={greenIcon}
+                    >
+                      <Popup>
+                        <div className="text-sm">
+                          <p className="font-semibold text-green-700 mb-1">
+                            📍 Selected Location
+                          </p>
+                          {formData.address && (
+                            <p className="text-gray-600 max-w-[200px]">
+                              {formData.address}
+                            </p>
+                          )}
+                          <p className="text-gray-400 text-xs mt-1">
+                            {mapCoords.lat.toFixed(6)},{" "}
+                            {mapCoords.lng.toFixed(6)}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+
+                {/* Coordinates badge */}
+                {mapCoords && (
+                  <div className="bg-gray-50 border-t border-gray-200 px-4 py-2 text-xs text-gray-500 flex items-center gap-2">
+                    <Navigation className="w-3 h-3 text-green-600" />
+                    <span>
+                      Lat: <strong>{mapCoords.lat.toFixed(6)}</strong> &nbsp;
+                      Lng: <strong>{mapCoords.lng.toFixed(6)}</strong>
+                    </span>
+                    {locationLoading && (
+                      <span className="ml-auto flex items-center gap-1 text-blue-500">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Fetching address…
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Street Address (auto-filled, also manually editable) */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-green-600" />
                 Street Address
+                <span className="text-xs text-gray-400 font-normal">
+                  (auto-filled from map, you can edit)
+                </span>
               </label>
               <Input
                 type="text"
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
-                placeholder="Enter your complete street address"
-                className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                  errors.address ? "border-red-500" : "border-gray-300"
-                }`}
+                placeholder="Your delivery street address"
+                className={`w-full h-16 text-lg bg-white text-gray-900 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${errors.address ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.address && (
                 <p className="text-red-500 text-sm">{errors.address}</p>
               )}
             </div>
+
+            {/* location hidden validation error */}
+            {errors.location && (
+              <p className="text-red-500 text-sm flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {errors.location}
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -497,8 +646,8 @@ export default function RegisterPage() {
           >
             {isLoading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Creating Account...
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Creating Account…
               </>
             ) : (
               <>
