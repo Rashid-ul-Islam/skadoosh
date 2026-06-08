@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
 import { useAuth } from "../context/AuthContext";
@@ -7,7 +7,6 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  Mail,
   ShoppingCart,
   ArrowRight,
 } from "lucide-react";
@@ -20,7 +19,13 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("Verifying your email address...");
 
+  // Prevent duplicate verification requests
+  const hasVerified = useRef(false);
+
   useEffect(() => {
+    if (hasVerified.current) return;
+    hasVerified.current = true;
+
     const verifyEmail = async () => {
       const token = searchParams.get("token");
 
@@ -39,26 +44,33 @@ export default function VerifyEmail() {
 
         if (!response.ok) {
           throw new Error(
-            data.error || "Verification failed. Please try again.",
+            data.error ||
+              data.message ||
+              "Verification failed. Please try again.",
           );
         }
 
-        login(data.user, data.token);
+        // Login user after successful verification
+        if (data.user && data.token) {
+          login(data.user, data.token);
+        }
 
         setStatus("success");
         setMessage(data.message || "Email verified successfully!");
 
         setTimeout(() => {
           navigate("/");
-        }, 3000);
+        }, 2500);
       } catch (error) {
+        console.error("Verification error:", error);
+
         setStatus("error");
-        setMessage(error.message);
+        setMessage(error.message || "Verification failed. Please try again.");
       }
     };
 
     verifyEmail();
-  }, [searchParams, navigate, login]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-emerald-100 to-emerald-200 flex items-center justify-center px-4 py-8">
