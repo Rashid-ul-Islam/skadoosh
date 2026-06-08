@@ -112,13 +112,12 @@ userSchema.index({ location: "2dsphere" }); // enables geo queries
 userSchema.index({ emailVerificationToken: 1 });
 
 // ── Pre-save: hash password ───────────────────────────────────────────────────
-userSchema.pre("save", async function (next) {
-    // Only hash if password was modified (also catches new documents)
-    if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+    // Only hash if password was modified
+    if (!this.isModified("password")) return;
 
-    const salt = await bcrypt.genSalt(12); // 12 rounds — secure yet fast enough
+    const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
 });
 
 // ── Instance method: compare passwords ───────────────────────────────────────

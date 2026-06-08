@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api";
 import {
   Eye,
   EyeOff,
@@ -137,8 +138,8 @@ export default function RegisterPage() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) return;
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/auth/check-email/${encodeURIComponent(email)}`,
+      const response = fetch(
+        `${API_BASE_URL}/api/auth/check-email/${encodeURIComponent(email)}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -270,7 +271,7 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3000/api/auth/register", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -286,12 +287,27 @@ export default function RegisterPage() {
 
       const data = await response.json();
       if (response.ok) {
-        login(data.user, data.token);
-        navigate("/");
+        alert(data.message);
+
+        navigate("/check-email", {
+          state: {
+            email: formData.email,
+          },
+        });
+
+        return;
       } else {
-        alert(
-          data.error || "Registration failed. Please check your information.",
-        );
+        if (!response.ok) {
+          console.log(data);
+
+          if (data.errors) {
+            setErrors(data.errors);
+          } else {
+            alert(data.error);
+          }
+
+          return;
+        }
       }
     } catch (error) {
       console.error("Registration failed:", error);

@@ -5,6 +5,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import NavBar from "./components/layout/NavBar.jsx";
 import ProductDetails from "./pages/ProductDetail.jsx";
+import CheckEmail from "./pages/CheckEmail.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 
 export default function App() {
   return (
@@ -15,6 +17,8 @@ export default function App() {
           <Route path="/" element={<Homepage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/product/:productId" element={<ProductDetails />} />
+          <Route path="/check-email" element={<CheckEmail />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
         </Routes>
       </Router>
     </AuthProvider>

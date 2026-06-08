@@ -1,31 +1,99 @@
 import dotenv from "dotenv";
-import pool from "./config/db.js";
+dotenv.config(); // must be first so env vars are available everywhere
+
+import dns from "dns";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
-import path from "path";
-import dns from "dns";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
+import pool from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
 
-//change DNS
-dns.setServers(["8.8.8.8","1.1.1.1"])
-
-
+// ── DNS override (keep your original setting) ──────────────────────────────────
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+console.log("SMTP_HOST:", process.env.SMTP_HOST);
+console.log("SMTP_USER:", process.env.SMTP_USER);
+console.log("SMTP_FROM:", process.env.SMTP_FROM);
 const app = express();
-app.use(cors());
-app.use(express.json());
+
+// ── Security headers ───────────────────────────────────────────────────────────
 app.use(
     helmet({
-        contentSecurityPolicy: false,
+        contentSecurityPolicy: false, // adjust when you add a frontend SSR layer
     })
-); // helmet is a security middleware that helps you protect your app by setting various HTTP headers
-app.use(morgan("dev")); // log the requests
-dotenv.config();
+);
 
+// ── CORS ───────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim());
 
+app.use(
+    cors({
+        origin: (origin, cb) => {
+            // Allow requests with no origin (e.g. mobile apps, Postman in dev)
+            if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+            cb(new Error(`CORS: origin ${origin} not allowed`));
+        },
+        credentials: true,
+    })
+);
+
+// ── Body parsing ───────────────────────────────────────────────────────────────
+app.use(express.json({ limit: "10kb" })); // reject oversized payloads
+app.use(express.urlencoded({ extended: false, limit: "10kb" }));
+
+// ── MongoDB query injection sanitiser ─────────────────────────────────────────
+// Strips $ and . from user-supplied data before it reaches Mongoose
+// currently not sanitizing query params, but can be added if needed
+app.use((req, res, next) => {
+    mongoSanitize.sanitize(req.body);
+    mongoSanitize.sanitize(req.params);
+    next();
+});
+
+// ── Logging ────────────────────────────────────────────────────────────────────
+if (process.env.NODE_ENV !== "test") {
+    app.use(morgan("dev"));
+}
+
+// ── Global rate limiter (fallback) ─────────────────────────────────────────────
+app.use(
+    rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 200,
+        message: { error: "Too many requests from this IP, please try again later." },
+        standardHeaders: true,
+        legacyHeaders: false,
+    })
+);
+
+// ── Routes ─────────────────────────────────────────────────────────────────────
+app.use("/api/auth", authRoutes);
+
+// Health-check (useful for deployment probes)
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
+// ── 404 handler ────────────────────────────────────────────────────────────────
+app.use((_req, res) => {
+    res.status(404).json({ error: "Route not found" });
+});
+
+// ── Global error handler ───────────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+    console.error(err);
+    res.status(err.status || 500).json({
+        error: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
+    });
+});
+
+// ── Start ──────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-await pool();
 
+await pool(); // connect to MongoDB first
 app.listen(PORT, () => {
-    console.log(`Server running on ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || "development"}]`);
 });
