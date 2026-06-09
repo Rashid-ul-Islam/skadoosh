@@ -536,7 +536,7 @@ const CartSidebarLayout = forwardRef(({ children }, ref) => {
         currentPath="/cart"
       />
 
-      <style jsx>{`
+      <style>{`
         @keyframes slideInRight {
           from {
             opacity: 0;

@@ -7,6 +7,7 @@ import { Button } from "../ui/button.jsx";
 import LoginModal from "../auth/LoginModal.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {API_BASE_URL} from "../../config/api.js";
+import { Tag } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Mock data — replaces all API calls
@@ -351,6 +352,13 @@ export default function NavBar() {
                   {cartItemCount}
                 </span>
               )}
+            </Link>
+
+            <Link to="/sell">
+              <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1D9E75] hover:bg-[#0F6E56] text-white text-sm font-medium rounded-full transition-colors">
+                <Tag size={14} />
+                Sell
+              </button>
             </Link>
 
             {/* User dropdown */}
