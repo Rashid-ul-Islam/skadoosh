@@ -53,95 +53,8 @@ const ProductDetailsPage = () => {
   const { user, isLoggedIn } = useAuth();
   const cartBarRef = useRef(null);
 
-  const mockProduct = {
-    product_id: 1,
-    product_name: "Premium Wireless Headphones",
-    name: "Premium Wireless Headphones",
-    origin: "Japan",
-    price: 129.99,
-    original_price: 159.99,
-    discount_percentage: 20,
-    rating: 4.4,
-    avg_rating: 4.4,
-    review_count: 6,
-    quantity: 24,
-    is_available: true,
-    is_refundable: true,
-    description:
-      "High-fidelity wireless headphones with noise cancellation, 30-hour battery life, and a lightweight, comfortable fit for long listening sessions.",
-    category_id: 5,
-    variants: [
-      { id: 1, name: "Midnight Black", color: "#111827", price: 129.99 },
-      { id: 2, name: "Arctic White", color: "#F9FAFB", price: 129.99 },
-      { id: 3, name: "Ocean Blue", color: "#2563EB", price: 134.99 },
-    ],
-    images: [
-      {
-        image_id: 1,
-        image_url:
-          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=80",
-      },
-      {
-        image_id: 2,
-        image_url:
-          "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80",
-      },
-      {
-        image_id: 3,
-        image_url:
-          "https://images.unsplash.com/photo-1524678606370-a47ad25cb82a?auto=format&fit=crop&w=1200&q=80",
-      },
-    ],
-    reviews: [
-      {
-        id: 1,
-        user_name: "Rita A.",
-        rating: 5,
-        date: "2025-10-03",
-        comment: "Super comfortable and the ANC is excellent.",
-      },
-      {
-        id: 2,
-        user_name: "Imran K.",
-        rating: 4,
-        date: "2025-09-14",
-        comment: "Sound quality is great; wish the case was smaller.",
-      },
-      {
-        id: 3,
-        user_name: "Fatima S.",
-        rating: 4,
-        date: "2025-08-26",
-        comment: "Battery life matches the claim. Solid build.",
-      },
-      {
-        id: 4,
-        user_name: "Anon",
-        rating: 5,
-        date: "2025-08-07",
-        comment: "Worth the price during the sale.",
-      },
-      {
-        id: 5,
-        user_name: "Tanvir H.",
-        rating: 3,
-        date: "2025-07-21",
-        comment: "Bass is a bit heavy for me, but still good.",
-      },
-      {
-        id: 6,
-        user_name: "Nadia M.",
-        rating: 5,
-        date: "2025-06-30",
-        comment: "Lightweight, clean sound, easy to pair.",
-      },
-    ],
-  };
-
-  const mockCategories = [
-    { category_id: 1, name: "Electronics", parent_id: null },
-    { category_id: 5, name: "Audio", parent_id: 1 },
-  ];
+  // Base URL for serving listing images from the backend
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const [product, setProduct] = useState(null);
   const [productImages, setProductImages] = useState([]);
@@ -168,41 +81,86 @@ const ProductDetailsPage = () => {
   const [selectedProducts, setSelectedProducts] = useState(null);
   const [categoryPath, setCategoryPath] = useState([]);
 
-  // Log productId for debugging
-  console.log("Product ID:", productId);
-
-  // Mock API calls - replace with actual API endpoints
+  // Fetch listing from real API: GET /api/listings/:id
   useEffect(() => {
-    const loadMockProduct = () => {
+    const fetchListing = async () => {
+      if (!productId) return;
       setLoading(true);
       setError(null);
 
-      const productData = {
-        ...mockProduct,
-        product_id: Number(productId) || mockProduct.product_id,
-      };
+      try {
+        const res = await fetch(`${API_BASE}/api/listings/${productId}`);
+        if (!res.ok) {
+          if (res.status === 404) throw new Error("Listing not found.");
+          throw new Error("Failed to load listing.");
+        }
+        const { listing } = await res.json();
 
-      setProduct(productData);
-      setCategories(mockCategories);
-      setProductImages(productData.images || []);
-      setReviews(productData.reviews || []);
+        // Normalise the listing into the shape the UI expects
+        const normalised = {
+          // IDs
+          _id: listing._id,
+          product_id: listing._id,
 
-      const totalReviews = productData.reviews.length;
-      if (totalReviews > 0) {
-        const totalRating = productData.reviews.reduce(
-          (sum, review) => sum + review.rating,
-          0,
-        );
-        const avgRating = totalRating / totalReviews;
-        setReviewStats({
-          totalReviews,
-          total_reviews: totalReviews,
-          averageRating: avgRating,
-          average_rating: avgRating,
-          ratingDistribution: calculateRatingDistribution(productData.reviews),
-          rating_distribution: calculateRatingDistribution(productData.reviews),
-        });
-      } else {
+          // Core fields
+          product_name: listing.title,
+          name: listing.title,
+          description: listing.description,
+          category: listing.category,
+          condition: listing.condition,
+          listingType: listing.listingType,
+          status: listing.status,
+
+          // Pricing — sell listings use `price`, rent listings use `rentPricePerDay`
+          price:
+            listing.listingType === "sell"
+              ? listing.price
+              : listing.rentPricePerDay,
+          rentPricePerDay: listing.rentPricePerDay,
+          depositAmount: listing.depositAmount,
+          minRentalDays: listing.minRentalDays,
+          maxRentalDays: listing.maxRentalDays,
+          rentTerms: listing.rentTerms,
+
+          // Stock / availability
+          quantity: listing.quantity ?? 1,
+          is_available: listing.status === "active",
+
+          // Extras
+          negotiable: listing.negotiable,
+          deliveryAvailable: listing.deliveryAvailable,
+
+          // Seller info
+          seller: listing.seller,
+
+          // Images — backend serves them at /uploads/listings/<filename>
+          images: (listing.images || []).map((img, idx) => ({
+            image_id: idx,
+            // Prepend API_BASE so <img src> resolves correctly
+            image_url: `${API_BASE}${img.url}`,
+            filename: img.filename,
+          })),
+
+          // Fields that don't exist in this schema — keep falsy defaults
+          // so the UI gracefully hides discount / rating / review sections
+          origin: null,
+          rating: null,
+          avg_rating: null,
+          review_count: 0,
+          discount_percentage: 0,
+          original_price: null,
+          is_refundable: false,
+          variants: [],
+        };
+
+        setProduct(normalised);
+        setProductImages(normalised.images);
+        // No category hierarchy in this API; use a single breadcrumb entry
+        setCategories([
+          { category_id: listing.category, name: listing.category },
+        ]);
+        // Reviews are not part of this API — leave empty
+        setReviews([]);
         setReviewStats({
           totalReviews: 0,
           total_reviews: 0,
@@ -211,20 +169,29 @@ const ProductDetailsPage = () => {
           ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
           rating_distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
         });
+      } catch (err) {
+        console.error("fetchListing error:", err);
+        setError(err.message || "Something went wrong.");
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
-    if (productId) loadMockProduct();
+    fetchListing();
   }, [productId]);
 
   // Check if product is favorited when component loads or user logs in
   useEffect(() => {
-    if (isLoggedIn && user && user.user_id && product && product.product_id) {
+    if (
+      isLoggedIn &&
+      user &&
+      (user._id || user.user_id) &&
+      product &&
+      product._id
+    ) {
       checkIfLiked();
     }
-  }, [isLoggedIn, user, product?.product_id]);
+  }, [isLoggedIn, user, product?._id]);
 
   // Close login modal when user successfully logs in
   useEffect(() => {
@@ -278,14 +245,14 @@ const ProductDetailsPage = () => {
       return;
     }
 
-    if (!user || !user.user_id) {
+    if (!user || !(user._id || user.user_id)) {
       console.error("User data is not available:", user);
       showWarning("Login Required", "Please log in again to manage favorites");
       setShowLoginModal(true);
       return;
     }
 
-    if (!product || !product.product_id) {
+    if (!product || !product._id) {
       console.error("Product data is not available:", product);
       showError("Product Error", "Product information is missing");
       return;
@@ -341,28 +308,25 @@ const ProductDetailsPage = () => {
   };
 
   const renderBreadcrumb = () => {
-    const breadcrumbPath = categories.filter(
-      (cat) =>
-        cat.category_id === product.category_id ||
-        categories.some((c) => c.parent_id === cat.category_id),
-    );
-
     return (
       <nav className="flex mb-4 text-sm text-gray-600">
         <a href="/" className="hover:text-blue-600">
           Home
         </a>
-        {breadcrumbPath.map((cat, index) => (
-          <React.Fragment key={cat.category_id}>
+        {product?.category && (
+          <>
             <span className="mx-2">/</span>
-            <a
-              href={`/category/${cat.category_id}`}
-              className="hover:text-blue-600"
-            >
-              {cat.name}
-            </a>
-          </React.Fragment>
-        ))}
+            <span className="text-gray-800">{product.category}</span>
+          </>
+        )}
+        {product?.name && (
+          <>
+            <span className="mx-2">/</span>
+            <span className="text-gray-500 truncate max-w-xs">
+              {product.name}
+            </span>
+          </>
+        )}
       </nav>
     );
   };
@@ -393,13 +357,10 @@ const ProductDetailsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
-
       {/* CartBar Component */}
       <CartBar ref={cartBarRef} />
 
-      <div
-        className={`transition-all duration-300 } min-h-screen bg-gray-50`}
-      >
+      <div className={`transition-all duration-300 } min-h-screen bg-gray-50`}>
         {/* Success Message */}
         {showSuccessMessage && (
           <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center">
@@ -442,7 +403,7 @@ const ProductDetailsPage = () => {
               <div className="flex space-x-2 overflow-x-auto">
                 {productImages.map((image, index) => (
                   <button
-                    key={image.image_id}
+                    key={image.image_id ?? index}
                     onClick={() => setSelectedImageIndex(index)}
                     className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
                       selectedImageIndex === index
@@ -452,7 +413,7 @@ const ProductDetailsPage = () => {
                   >
                     <img
                       src={image.image_url}
-                      alt={`${product.name} ${index + 1}`}
+                      alt={`${product.name || "Listing"} image ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -468,9 +429,43 @@ const ProductDetailsPage = () => {
                     product.name ||
                     "Product Name Not Available"}
                 </h1>
-                <p className="text-gray-600 mb-4">
-                  Origin: {product.origin || "Origin not specified"}
+                <p className="text-gray-600 mb-2">
+                  Condition:{" "}
+                  <span className="font-medium text-gray-800">
+                    {product.condition || "Not specified"}
+                  </span>
                 </p>
+                {product.seller && (
+                  <p className="text-gray-600 mb-2">
+                    Seller:{" "}
+                    <span className="font-medium text-gray-800">
+                      {product.seller.firstName} {product.seller.lastName}
+                    </span>
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mb-4">
+                  {product.listingType && (
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide ${
+                        product.listingType === "rent"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
+                      {product.listingType === "rent" ? "For Rent" : "For Sale"}
+                    </span>
+                  )}
+                  {product.negotiable && (
+                    <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
+                      Negotiable
+                    </span>
+                  )}
+                  {product.deliveryAvailable && (
+                    <span className="px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700">
+                      Delivery Available
+                    </span>
+                  )}
+                </div>
 
                 {/* Rating */}
                 <div className="flex items-center space-x-2 mb-4">
@@ -484,26 +479,41 @@ const ProductDetailsPage = () => {
 
                 {/* Price */}
                 <div className="flex items-center space-x-3 mb-6">
-                  <span className="text-3xl font-bold text-gray-900">
-                    ৳
-                    {(
-                      parseFloat(selectedVariant?.price) ||
-                      parseFloat(product.price) ||
-                      0
-                    ).toFixed(2)}
-                  </span>
-                  {product.discount_percentage &&
-                    product.discount_percentage > 0 && (
-                      <>
-                        <span className="text-lg text-gray-500 line-through">
-                          ৳
-                          {(parseFloat(product.original_price) || 0).toFixed(2)}
+                  {product.listingType === "rent" ? (
+                    <div>
+                      <span className="text-3xl font-bold text-gray-900">
+                        ৳{parseFloat(product.rentPricePerDay || 0).toFixed(2)}
+                        <span className="text-base font-normal text-gray-500">
+                          {" "}
+                          / day
                         </span>
-                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
-                          -{product.discount_percentage}%
-                        </span>
-                      </>
-                    )}
+                      </span>
+                      {product.depositAmount > 0 && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Deposit: ৳
+                          {parseFloat(product.depositAmount).toFixed(2)}
+                        </p>
+                      )}
+                      {(product.minRentalDays || product.maxRentalDays) && (
+                        <p className="text-sm text-gray-500">
+                          Rental period:{" "}
+                          {product.minRentalDays
+                            ? `min ${product.minRentalDays}d`
+                            : ""}
+                          {product.minRentalDays && product.maxRentalDays
+                            ? " – "
+                            : ""}
+                          {product.maxRentalDays
+                            ? `max ${product.maxRentalDays}d`
+                            : ""}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-3xl font-bold text-gray-900">
+                      ৳{(parseFloat(product.price) || 0).toFixed(2)}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -673,27 +683,82 @@ const ProductDetailsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="font-semibold mb-3 text-black">
-                      Product Details
+                      Listing Details
                     </h4>
                     <dl className="space-y-2">
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Name:</dt>
+                        <dt className="text-gray-600">Title:</dt>
                         <dd className="text-black font-medium">
                           {product.product_name || product.name || "N/A"}
                         </dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Price:</dt>
+                        <dt className="text-gray-600">Category:</dt>
                         <dd className="text-black font-medium">
-                          ৳{parseFloat(product.price || 0).toFixed(2)}
+                          {product.category || "Not specified"}
                         </dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Origin:</dt>
+                        <dt className="text-gray-600">Condition:</dt>
                         <dd className="text-black font-medium">
-                          {product.origin || "Not specified"}
+                          {product.condition || "Not specified"}
                         </dd>
                       </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Listing Type:</dt>
+                        <dd className="text-black font-medium capitalize">
+                          {product.listingType || "N/A"}
+                        </dd>
+                      </div>
+                      {product.listingType === "sell" && (
+                        <div className="flex justify-between">
+                          <dt className="text-gray-600">Price:</dt>
+                          <dd className="text-black font-medium">
+                            ৳{parseFloat(product.price || 0).toFixed(2)}
+                          </dd>
+                        </div>
+                      )}
+                      {product.listingType === "rent" && (
+                        <>
+                          <div className="flex justify-between">
+                            <dt className="text-gray-600">Rent / Day:</dt>
+                            <dd className="text-black font-medium">
+                              ৳
+                              {parseFloat(product.rentPricePerDay || 0).toFixed(
+                                2,
+                              )}
+                            </dd>
+                          </div>
+                          {product.depositAmount > 0 && (
+                            <div className="flex justify-between">
+                              <dt className="text-gray-600">Deposit:</dt>
+                              <dd className="text-black font-medium">
+                                ৳{parseFloat(product.depositAmount).toFixed(2)}
+                              </dd>
+                            </div>
+                          )}
+                          {product.minRentalDays && (
+                            <div className="flex justify-between">
+                              <dt className="text-gray-600">
+                                Min Rental Days:
+                              </dt>
+                              <dd className="text-black font-medium">
+                                {product.minRentalDays}
+                              </dd>
+                            </div>
+                          )}
+                          {product.maxRentalDays && (
+                            <div className="flex justify-between">
+                              <dt className="text-gray-600">
+                                Max Rental Days:
+                              </dt>
+                              <dd className="text-black font-medium">
+                                {product.maxRentalDays}
+                              </dd>
+                            </div>
+                          )}
+                        </>
+                      )}
                       <div className="flex justify-between">
                         <dt className="text-gray-600">Quantity Available:</dt>
                         <dd className="text-black font-medium">
@@ -704,69 +769,75 @@ const ProductDetailsPage = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold mb-3 text-black">
-                      Product Status
+                      Listing Status
                     </h4>
                     <dl className="space-y-2">
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Available:</dt>
+                        <dt className="text-gray-600">Status:</dt>
                         <dd>
                           <span
                             className={`px-2 py-1 rounded text-sm font-medium ${
-                              product.is_available
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {product.is_available ? "In Stock" : "Out of Stock"}
-                          </span>
-                        </dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-gray-600">Refundable:</dt>
-                        <dd>
-                          <span
-                            className={`px-2 py-1 rounded text-sm font-medium ${
-                              product.is_refundable
+                              product.status === "active"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-gray-100 text-gray-800"
                             }`}
                           >
-                            {product.is_refundable ? "Yes" : "No"}
+                            {product.status
+                              ? product.status.charAt(0).toUpperCase() +
+                                product.status.slice(1)
+                              : "Unknown"}
                           </span>
                         </dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-gray-600">Rating:</dt>
-                        <dd className="flex items-center space-x-2">
-                          <span className="text-black font-medium">
-                            {parseFloat(
-                              product.rating || product.avg_rating || 0,
-                            ).toFixed(1)}
+                        <dt className="text-gray-600">Negotiable:</dt>
+                        <dd>
+                          <span
+                            className={`px-2 py-1 rounded text-sm font-medium ${
+                              product.negotiable
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {product.negotiable ? "Yes" : "No"}
                           </span>
-                          <div className="flex">
-                            {renderStars(
-                              product.rating || product.avg_rating || 0,
-                            )}
-                          </div>
                         </dd>
                       </div>
-                      {product.discount_percentage &&
-                        product.discount_percentage > 0 && (
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600">Delivery:</dt>
+                        <dd>
+                          <span
+                            className={`px-2 py-1 rounded text-sm font-medium ${
+                              product.deliveryAvailable
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {product.deliveryAvailable
+                              ? "Available"
+                              : "Not Available"}
+                          </span>
+                        </dd>
+                      </div>
+                      {product.seller && (
+                        <>
                           <div className="flex justify-between">
-                            <dt className="text-gray-600">Discount:</dt>
-                            <dd>
-                              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
-                                {product.discount_percentage}% OFF
-                              </span>
+                            <dt className="text-gray-600">Seller:</dt>
+                            <dd className="text-black font-medium">
+                              {product.seller.firstName}{" "}
+                              {product.seller.lastName}
                             </dd>
                           </div>
-                        )}
-                      <div className="flex justify-between">
-                        <dt className="text-gray-600">Reviews:</dt>
-                        <dd className="text-black font-medium">
-                          {product.review_count || 0} reviews
-                        </dd>
-                      </div>
+                          {product.seller.phoneNumber && (
+                            <div className="flex justify-between">
+                              <dt className="text-gray-600">Contact:</dt>
+                              <dd className="text-black font-medium">
+                                {product.seller.phoneNumber}
+                              </dd>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </dl>
                   </div>
                 </div>
@@ -774,9 +845,6 @@ const ProductDetailsPage = () => {
 
               {activeTab === "reviews" && (
                 <div className="space-y-6">
-                  {console.log("Current reviewStats:", reviewStats)}{" "}
-                  {/* Debug log */}
-                  {console.log("Current reviews:", reviews)} {/* Debug log */}
                   {/* Review Summary */}
                   <div className="flex items-start space-x-8">
                     <div className="text-center">
@@ -878,9 +946,6 @@ const ProductDetailsPage = () => {
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
-
-
-
     </div>
   );
 };
