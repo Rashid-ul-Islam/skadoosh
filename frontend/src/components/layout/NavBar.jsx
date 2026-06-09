@@ -93,6 +93,7 @@ function mockQuickSearch(query) {
 export default function NavBar() {
   const { user, isLoggedIn, logout: authLogout } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState(null);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -179,10 +180,24 @@ export default function NavBar() {
     setSearchResults([]);
     setShowResults(false);
   };
+  const handleSellClick = (e) => {
+    e.preventDefault();
 
+    if (isLoggedIn) {
+      navigate("/sell");
+      return;
+    }
+
+    setPendingRedirect("/sell");
+    setIsLoginModalOpen(true);
+  };
   const handleLoginSuccess = (userData) => {
-    console.log("Login success in NavBar:", userData);
     setIsLoginModalOpen(false);
+
+    if (pendingRedirect) {
+      navigate(pendingRedirect);
+      setPendingRedirect(null);
+    }
   };
 
   const handleLogout = async () => {
@@ -354,12 +369,13 @@ export default function NavBar() {
               )}
             </Link>
 
-            <Link to="/sell">
-              <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1D9E75] hover:bg-[#0F6E56] text-white text-sm font-medium rounded-full transition-colors">
-                <Tag size={14} />
-                Sell
-              </button>
-            </Link>
+            <button
+              onClick={handleSellClick}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1D9E75] hover:bg-[#0F6E56] text-white text-sm font-medium rounded-full transition-colors"
+            >
+              <Tag size={14} />
+              Sell
+            </button>
 
             {/* User dropdown */}
             <div className="relative group">
