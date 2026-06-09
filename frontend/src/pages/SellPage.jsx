@@ -10,10 +10,11 @@ import {
   MapPin,
   ChevronDown,
   AlertCircle,
-  CheckCircle,
   Image,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import Notification from "../components/common/Notification.jsx";
+import { useNotification } from "../components/hooks/useNotification.js";
 
 const CATEGORIES = [
   "Electronics & Gadgets",
@@ -48,16 +49,43 @@ const CONDITIONS = [
 
 const MAX_IMAGES = 6;
 
+const Label = ({ children, required }) => (
+  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+    {children}
+    {required && <span className="text-red-400 ml-0.5">*</span>}
+  </label>
+);
+
+const FieldError = ({ field, errors }) =>
+  errors[field] ? (
+    <p
+      data-error
+      className="mt-1.5 text-xs text-red-500 flex items-center gap-1"
+    >
+      <AlertCircle size={12} /> {errors[field]}
+    </p>
+  ) : null;
+
+const SectionCard = ({ icon: Icon, title, children }) => (
+  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+    <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+      <Icon size={16} className="text-[#1D9E75]" />
+      <h2 className="text-sm font-medium text-gray-800">{title}</h2>
+    </div>
+    <div className="p-5 space-y-4">{children}</div>
+  </div>
+);
+
 export default function SellPage() {
   const { token, isLoggedIn } = useAuth();
   const navigate = useNavigate();
+  const { notification, hideNotification, showSuccess, showError } =
+    useNotification();
 
   const [listingType, setListingType] = useState("sell"); // "sell" | "rent"
   const [images, setImages] = useState([]); // { file, preview }[]
   const [dragOver, setDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null); // null | "success" | "error"
-  const [errorMsg, setErrorMsg] = useState("");
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
 
@@ -73,11 +101,7 @@ export default function SellPage() {
     maxRentalDays: "",
     depositAmount: "",
     rentTerms: "",
-    // location
-    city: "",
-    area: "",
     // extra
-    tags: "",
     quantity: "1",
     isBrandNew: false,
     negotiable: false,
@@ -91,7 +115,7 @@ export default function SellPage() {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
   };
 
-  // ── Image handling ─────────────────────────────────────────────────────────
+  // ── Image handling ──────────────────────────────────────────────────────────
 
   const addImages = (files) => {
     const valid = Array.from(files).filter((f) => f.type.startsWith("image/"));
@@ -117,7 +141,7 @@ export default function SellPage() {
     addImages(e.dataTransfer.files);
   };
 
-  // ── Validation ─────────────────────────────────────────────────────────────
+  // ── Validation ──────────────────────────────────────────────────────────────
 
   const validate = () => {
     const e = {};
@@ -127,7 +151,6 @@ export default function SellPage() {
     if (!form.condition) e.condition = "Select a condition";
     if (!form.description.trim()) e.description = "Description is required";
     if (form.description.length > 2000) e.description = "Max 2000 characters";
-    if (!form.city.trim()) e.city = "City is required";
     if (images.length === 0) e.images = "At least one photo is required";
 
     if (listingType === "sell") {
@@ -150,16 +173,17 @@ export default function SellPage() {
     return Object.keys(e).length === 0;
   };
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit ──────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!isLoggedIn) {
       navigate("/");
       return;
     }
+
     if (!validate()) {
-      // Scroll to first error
       document
         .querySelector("[data-error]")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -167,17 +191,13 @@ export default function SellPage() {
     }
 
     setIsSubmitting(true);
-    setSubmitStatus(null);
 
     try {
       const payload = new FormData();
 
-      // Append all form fields
       payload.append("listingType", listingType);
       Object.entries(form).forEach(([k, v]) => payload.append(k, v));
-
-      // Append images
-      images.forEach(({ file }, i) => payload.append(`images`, file));
+      images.forEach(({ file }) => payload.append("images", file));
 
       const res = await fetch("http://localhost:5000/api/listings", {
         method: "POST",
@@ -188,81 +208,69 @@ export default function SellPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setSubmitStatus("success");
-        setTimeout(() => navigate(`/listing/${data.listing._id}`), 1500);
+        showSuccess(
+          "Listing Published! 🎉",
+          `"${form.title}" is now live on the marketplace.`,
+        );
+        setTimeout(() => navigate(`/listing/${data.listing._id}`), 2000);
       } else {
-        setErrorMsg(data.error || "Something went wrong. Please try again.");
-        setSubmitStatus("error");
+        showError(
+          "Failed to Publish",
+          data.error || "Something went wrong. Please try again.",
+        );
       }
     } catch {
-      setErrorMsg("Network error. Please check your connection.");
-      setSubmitStatus("error");
+      showError(
+        "Network Error",
+        "Could not reach the server. Please check your connection.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ── Field helpers ──────────────────────────────────────────────────────────
+  // ── Field helpers ───────────────────────────────────────────────────────────
 
   const inputCls = (field) =>
     `w-full px-3 py-2.5 rounded-lg border text-sm bg-white text-gray-900 outline-none transition
      focus:ring-2 focus:ring-[#1D9E75]/30 focus:border-[#1D9E75]
      ${errors[field] ? "border-red-400 bg-red-50" : "border-gray-200 hover:border-gray-300"}`;
 
-  const FieldError = ({ field }) =>
-    errors[field] ? (
-      <p
-        data-error
-        className="mt-1.5 text-xs text-red-500 flex items-center gap-1"
-      >
-        <AlertCircle size={12} /> {errors[field]}
-      </p>
-    ) : null;
-
-  const Label = ({ children, required }) => (
-    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-      {children}
-      {required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-  );
-
-  const SectionCard = ({ icon: Icon, title, children }) => (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
-        <Icon size={16} className="text-[#1D9E75]" />
-        <h2 className="text-sm font-medium text-gray-800">{title}</h2>
-      </div>
-      <div className="p-5 space-y-4">{children}</div>
-    </div>
-  );
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-gray-50/70">
+      {/* Global notification */}
+      <Notification
+        show={notification.show}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        onClose={hideNotification}
+      />
+
       <div className="max-w-2xl mx-auto px-4 py-10">
         {/* Page header */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">
-            Create a listing
+            List a product up for sale or rent
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Fill in the details below to post your item to the community
-            marketplace.
+            Fill in the details below to post your item to the marketplace.
           </p>
         </div>
 
         {/* Listing type toggle */}
-        <div className="flex rounded-xl border border-gray-200 bg-white p-1 mb-6 w-fit gap-1">
+        <div className="w-full flex rounded-xl border border-gray-200 bg-white p-1 mb-6 w-fit gap-1">
           {[
-            { value: "sell", label: "Sell", icon: Tag },
-            { value: "rent", label: "Rent", icon: Package },
+            { value: "sell", label: "For sale", icon: Plus },
+            { value: "rent", label: "For rent", icon: Plus },
           ].map(({ value, label, icon: Icon }) => (
             <button
               key={value}
               type="button"
               onClick={() => setListingType(value)}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all
+              className={`w-full flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all
                 ${
                   listingType === value
                     ? "bg-[#1D9E75] text-white"
@@ -277,7 +285,10 @@ export default function SellPage() {
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {/* Photos */}
-          <SectionCard icon={Image} title="Photos">
+          <SectionCard
+            icon={Image}
+            title="Upload one or more photos of the product"
+          >
             <div>
               {errors.images && (
                 <p
@@ -368,7 +379,7 @@ export default function SellPage() {
           {/* Basic details */}
           <SectionCard icon={FileText} title="Details">
             <div>
-              <Label required>Title</Label>
+              <Label required>Name of the product</Label>
               <input
                 className={inputCls("title")}
                 placeholder="e.g. Sony WH-1000XM5 Headphones"
@@ -377,7 +388,7 @@ export default function SellPage() {
                 maxLength={100}
               />
               <div className="flex justify-between items-start">
-                <FieldError field="title" />
+                <FieldError field="title" errors={errors} />
                 <span className="text-xs text-gray-400 mt-1 ml-auto">
                   {form.title.length}/100
                 </span>
@@ -405,7 +416,7 @@ export default function SellPage() {
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                   />
                 </div>
-                <FieldError field="category" />
+                <FieldError field="category" errors={errors} />
               </div>
 
               <div>
@@ -457,7 +468,7 @@ export default function SellPage() {
                   </label>
                 ))}
               </div>
-              <FieldError field="condition" />
+              <FieldError field="condition" errors={errors} />
             </div>
 
             <div>
@@ -471,30 +482,11 @@ export default function SellPage() {
                 maxLength={2000}
               />
               <div className="flex justify-between items-start">
-                <FieldError field="description" />
+                <FieldError field="description" errors={errors} />
                 <span className="text-xs text-gray-400 mt-1 ml-auto">
                   {form.description.length}/2000
                 </span>
               </div>
-            </div>
-
-            <div>
-              <Label>Tags</Label>
-              <div className="relative">
-                <Tag
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  className={`${inputCls("tags")} pl-8`}
-                  placeholder="sony, headphones, wireless  (comma separated)"
-                  value={form.tags}
-                  onChange={set("tags")}
-                />
-              </div>
-              <p className="text-xs text-gray-400 mt-1">
-                Helps buyers find your listing faster
-              </p>
             </div>
           </SectionCard>
 
@@ -521,7 +513,7 @@ export default function SellPage() {
                         onChange={set("price")}
                       />
                     </div>
-                    <FieldError field="price" />
+                    <FieldError field="price" errors={errors} />
                   </div>
                 </div>
 
@@ -582,7 +574,7 @@ export default function SellPage() {
                         onChange={set("rentPricePerDay")}
                       />
                     </div>
-                    <FieldError field="rentPricePerDay" />
+                    <FieldError field="rentPricePerDay" errors={errors} />
                   </div>
 
                   <div>
@@ -600,7 +592,7 @@ export default function SellPage() {
                         onChange={set("depositAmount")}
                       />
                     </div>
-                    <FieldError field="depositAmount" />
+                    <FieldError field="depositAmount" errors={errors} />
                   </div>
                 </div>
 
@@ -615,7 +607,7 @@ export default function SellPage() {
                       value={form.minRentalDays}
                       onChange={set("minRentalDays")}
                     />
-                    <FieldError field="minRentalDays" />
+                    <FieldError field="minRentalDays" errors={errors} />
                   </div>
                   <div>
                     <Label>Max. rental (days)</Label>
@@ -627,7 +619,7 @@ export default function SellPage() {
                       value={form.maxRentalDays}
                       onChange={set("maxRentalDays")}
                     />
-                    <FieldError field="maxRentalDays" />
+                    <FieldError field="maxRentalDays" errors={errors} />
                   </div>
                 </div>
 
@@ -664,45 +656,6 @@ export default function SellPage() {
               </>
             )}
           </SectionCard>
-
-          {/* Location */}
-          <SectionCard icon={MapPin} title="Location">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label required>City</Label>
-                <input
-                  className={inputCls("city")}
-                  placeholder="e.g. Dhaka"
-                  value={form.city}
-                  onChange={set("city")}
-                />
-                <FieldError field="city" />
-              </div>
-              <div>
-                <Label>Area / neighbourhood</Label>
-                <input
-                  className={inputCls("area")}
-                  placeholder="e.g. Dhanmondi"
-                  value={form.area}
-                  onChange={set("area")}
-                />
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Status messages */}
-          {submitStatus === "success" && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
-              <CheckCircle size={16} />
-              Listing published! Redirecting…
-            </div>
-          )}
-          {submitStatus === "error" && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-              <AlertCircle size={16} />
-              {errorMsg}
-            </div>
-          )}
 
           {/* Submit */}
           <div className="flex gap-3 pt-1 pb-6">
