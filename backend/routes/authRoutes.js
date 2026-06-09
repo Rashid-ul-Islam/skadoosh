@@ -5,12 +5,31 @@ import {
     verifyEmail,
     resendVerification,
     checkEmail,
+    login,
+    logout,
+    getMe,
 } from "../controllers/authController.js";
-import { validateRegister, validateCheckEmail } from "../middleware/validate.js";
+import { validateRegister, validateCheckEmail, validateLogin } from "../middleware/validate.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // ── Rate limiters ──────────────────────────────────────────────────────────────
+
+/**
+ * Login limiter — strict, because this is the main brute-force target.
+ * 10 attempts per IP per 15 minutes (complements per-account lockout).
+ * Two layers: IP-level here + account-level in the controller.
+ */
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: "Too many login attempts from this IP. Please wait 15 minutes before trying again." },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Skip successful requests so the window only counts failures
+    skipSuccessfulRequests: true,
+});
 
 /**
  * Strict limiter for registration — prevents bulk account creation / bots.
@@ -37,7 +56,7 @@ const resendLimiter = rateLimit({
 });
 
 /**
- * General auth limiter for read operations.
+ * General limiter for lightweight read endpoints.
  * 30 requests per IP per minute.
  */
 const generalLimiter = rateLimit({
@@ -52,6 +71,15 @@ const generalLimiter = rateLimit({
 
 // POST /api/auth/register
 router.post("/register", registerLimiter, validateRegister, register);
+
+// POST /api/auth/login
+router.post("/login", loginLimiter, validateLogin, login);
+
+// POST /api/auth/logout  — requires a valid JWT
+router.post("/logout", protect, logout);
+
+// GET  /api/auth/me  — returns the current user's profile
+router.get("/me", protect, getMe);
 
 // GET  /api/auth/verify-email?token=<token>
 router.get("/verify-email", generalLimiter, verifyEmail);

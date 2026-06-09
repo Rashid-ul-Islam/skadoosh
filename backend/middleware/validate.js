@@ -79,6 +79,34 @@ export const validateRegister = (req, res, next) => {
 };
 
 /**
+ * POST /api/auth/login
+ */
+export const validateLogin = (req, res, next) => {
+    const email = clean(req.body.email)?.toLowerCase();
+    const password = req.body.password; // never trim passwords
+
+    const errors = {};
+
+    if (!email) errors.email = "Email is required";
+    if (!password) errors.password = "Password is required";
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email))
+        errors.email = "Invalid email address";
+
+    // Hard cap: passwords over 1 KB are a bcrypt DoS vector
+    if (password && password.length > 1024)
+        errors.password = "Invalid credentials";
+
+    if (Object.keys(errors).length > 0) {
+        return res.status(422).json({ errors });
+    }
+
+    req.sanitised = { email, password };
+    next();
+};
+
+/**
  * GET /api/auth/check-email/:email
  */
 export const validateCheckEmail = (req, res, next) => {

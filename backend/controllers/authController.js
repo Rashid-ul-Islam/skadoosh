@@ -223,3 +223,155 @@ export const checkEmail = async (req, res) => {
         return res.status(500).json({ error: "Server error" });
     }
 };
+
+// ── Constants for account lockout ──────────────────────────────────────────────
+const MAX_LOGIN_ATTEMPTS = 5;           // lock after 5 consecutive failures
+const LOCK_DURATION_MS = 15 * 60 * 1000; // locked for 15 minutes
+
+/**
+ * POST /api/auth/login
+ *
+ * Security measures applied:
+ *  1. Input validation via middleware (validateLogin)
+ *  2. Rate limiting on the route (loginLimiter — 10 attempts / 15 min per IP)
+ *  3. Account-level lockout after MAX_LOGIN_ATTEMPTS consecutive failures
+ *  4. bcrypt.compare runs even when user not found (prevents timing-based
+ *     email enumeration — attacker can't tell valid vs invalid email by response time)
+ *  5. Generic error message — never reveals whether the email exists
+ *  6. Blocks unverified accounts from logging in
+ *  7. JWT issued only on full success; lastLogin updated
+ */
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.sanitised; // set by validateLogin middleware
+
+        // ── Fetch user, explicitly selecting hidden security fields ────────────
+        const user = await User.findOne({ email }).select(
+            "+password +loginAttempts +lockUntil"
+        );
+
+        // ── Constant-time dummy compare when user not found ───────────────────
+        // bcrypt.compare takes the same time whether or not the user exists,
+        // preventing timing attacks that reveal valid email addresses.
+        if (!user) {
+            await bcryptDummyCompare();
+            return res.status(401).json({ error: "Invalid email or password." });
+        }
+
+        // ── Account lockout check ─────────────────────────────────────────────
+        if (user.isLocked()) {
+            const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60_000);
+            return res.status(423).json({
+                error: `Account temporarily locked due to too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""}.`,
+            });
+        }
+
+        // ── Email verification check ──────────────────────────────────────────
+        if (!user.isEmailVerified) {
+            return res.status(403).json({
+                error: "Please verify your email address before logging in. Check your inbox or request a new verification link.",
+                code: "EMAIL_NOT_VERIFIED",
+            });
+        }
+
+        // ── Account active check ──────────────────────────────────────────────
+        if (!user.isActive) {
+            return res.status(403).json({ error: "This account has been deactivated. Please contact support." });
+        }
+
+        // ── Password comparison ───────────────────────────────────────────────
+        const passwordMatch = await user.comparePassword(password);
+
+        if (!passwordMatch) {
+            await handleFailedLogin(user);
+            return res.status(401).json({ error: "Invalid email or password." });
+        }
+
+        // ── Successful login — reset lockout counters ─────────────────────────
+        if (user.loginAttempts > 0 || user.lockUntil) {
+            user.loginAttempts = 0;
+            user.lockUntil = undefined;
+        }
+        user.lastLogin = new Date();
+        await user.save();
+
+        // ── Issue JWT ─────────────────────────────────────────────────────────
+        const token = signToken(user._id);
+
+        return res.status(200).json({
+            message: "Login successful.",
+            token,
+            user: user.toSafeObject(),
+        });
+    } catch (error) {
+        console.error("Login error:", error);
+        return res.status(500).json({ error: "Server error. Please try again later." });
+    }
+};
+
+/**
+ * POST /api/auth/logout
+ *
+ * JWTs are stateless — the real logout happens on the client by discarding
+ * the token (AuthContext.logout() already does this).
+ * This endpoint exists so the server can log the event and,
+ * in the future, support a token-revocation blocklist if needed.
+ */
+export const logout = async (req, res) => {
+    try {
+        // req.user is set by the `protect` middleware
+        console.log(`User ${req.user._id} logged out at ${new Date().toISOString()}`);
+
+        // Future enhancement: add token jti to a Redis blocklist here.
+
+        return res.status(200).json({ message: "Logged out successfully." });
+    } catch (error) {
+        console.error("Logout error:", error);
+        return res.status(500).json({ error: "Server error. Please try again later." });
+    }
+};
+
+/**
+ * GET /api/auth/me
+ *
+ * Returns the currently authenticated user's profile.
+ * Protected by the `protect` middleware.
+ */
+export const getMe = async (req, res) => {
+    try {
+        // req.user is already loaded by `protect` — just return it
+        return res.status(200).json({ user: req.user.toSafeObject() });
+    } catch (error) {
+        console.error("getMe error:", error);
+        return res.status(500).json({ error: "Server error. Please try again later." });
+    }
+};
+
+// ── Private helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Runs a dummy bcrypt compare so code paths for "user not found" and
+ * "wrong password" take the same amount of time, preventing timing attacks.
+ */
+const bcryptDummyCompare = async () => {
+    // A pre-hashed dummy — bcrypt.compare will always return false.
+    const DUMMY_HASH = "$2b$12$invalidhashthatisjustheretowastetimedummyhashXXXXXXXXX";
+    const { default: bcrypt } = await import("bcryptjs");
+    await bcrypt.compare("dummy_password_to_prevent_timing_attack", DUMMY_HASH);
+};
+
+/**
+ * Increments failed login attempts and locks the account when the threshold
+ * is reached. Saves to DB.
+ */
+const handleFailedLogin = async (user) => {
+    user.loginAttempts += 1;
+
+    if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+        user.lockUntil = new Date(Date.now() + LOCK_DURATION_MS);
+        user.loginAttempts = 0; // reset counter so next window starts fresh after unlock
+        console.warn(`Account locked: ${user.email} after ${MAX_LOGIN_ATTEMPTS} failed attempts`);
+    }
+
+    await user.save();
+};

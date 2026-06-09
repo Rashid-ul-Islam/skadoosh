@@ -9,6 +9,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import {API_BASE_URL} from "../../config/api.js";
 import { Button } from "../ui/button.jsx";
 import { Input } from "../ui/input.jsx";
 import { useAuth } from "../../context/AuthContext.jsx"; // Import useAuth
@@ -16,7 +17,7 @@ import { useAuth } from "../../context/AuthContext.jsx"; // Import useAuth
 const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
   const { login } = useAuth(); // Use the global login function
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +28,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setFormData({ username: "", password: "" });
+      setFormData({ email: "", password: "" });
       setError("");
       setSuccess("");
       setShowPassword(false);
@@ -52,7 +53,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:3000/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,13 +166,13 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
               </div>
             )}
 
-            {/* Username/Email Field */}
+            {/* Email Field */}
             <div className="mb-4">
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Username or Email
+                Email address
               </label>
               <div className="relative">
                 <User
@@ -179,13 +180,13 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
                   size={18}
                 />
                 <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleInputChange}
                   className="w-full h-12 pl-10 pr-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200"
-                  placeholder="Enter your username or email"
+                  placeholder="Enter your email address"
                   required
                   disabled={isLoading}
                 />
@@ -230,7 +231,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || !formData.username || !formData.password}
+              disabled={isLoading || !formData.email || !formData.password}
               className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-yellow-500 hover:to-orange-600 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-300 transform"
             >
               {isLoading ? (

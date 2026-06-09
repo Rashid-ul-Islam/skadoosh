@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {API_BASE_URL} from "../config/api.js";
 
 // AuthContext stores login state so it survives page navigation.
 // It reads/writes localStorage to keep the user logged in after refresh.
@@ -11,19 +12,25 @@ export function AuthProvider({ children }) {
 
   // Load saved auth state when the app starts.
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
     const savedToken = localStorage.getItem("token");
+    if (!savedToken) return;
 
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser));
+    // Validate the stored token against the server on every app load
+    fetch(`${API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${savedToken}` },
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data) => {
+        // Token is valid — hydrate state with fresh user data from DB
+        setUser(data.user);
         setToken(savedToken);
-      } catch {
-        // If storage is corrupted, clear it to prevent false login state.
+        localStorage.setItem("user", JSON.stringify(data.user));
+      })
+      .catch(() => {
+        // Token expired, account deactivated, or network error — force logout
         localStorage.removeItem("user");
         localStorage.removeItem("token");
-      }
-    }
+      });
   }, []);
 
   // Call this after a successful login.

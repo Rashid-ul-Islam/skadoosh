@@ -6,6 +6,7 @@ import { ShoppingCart, Heart, User, PackageSearch, Shield } from "lucide-react";
 import { Button } from "../ui/button.jsx";
 import LoginModal from "../auth/LoginModal.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import {API_BASE_URL} from "../../config/api.js";
 
 // ---------------------------------------------------------------------------
 // Mock data — replaces all API calls
@@ -183,9 +184,21 @@ export default function NavBar() {
     setIsLoginModalOpen(false);
   };
 
-  const handleLogout = () => {
-    authLogout();
-    window.location.href = "/";
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+    } catch {
+      // Swallow network errors — client-side logout still proceeds
+    } finally {
+      authLogout();
+      navigate("/");
+    }
   };
 
   const currentPath = window.location.pathname;
