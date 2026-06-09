@@ -22,7 +22,8 @@ const app = express();
 // ── Security headers ───────────────────────────────────────────────────────────
 app.use(
     helmet({
-        contentSecurityPolicy: false, // adjust when you add a frontend SSR layer
+        contentSecurityPolicy: false,
+        crossOriginResourcePolicy: false, // adjust when you add a frontend SSR layer
     })
 );
 

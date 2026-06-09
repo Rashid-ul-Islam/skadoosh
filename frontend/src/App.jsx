@@ -8,6 +8,7 @@ import ProductDetails from "./pages/ProductDetail.jsx";
 import CheckEmail from "./pages/CheckEmail.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import SellPage from "./pages/SellPage.jsx";
+import ListingPage from "./pages/ListingPage.jsx";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/check-email" element={<CheckEmail />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/sell" element={<SellPage />} />
+          <Route path="/listings" element={<ListingPage />} />
         </Routes>
       </Router>
     </AuthProvider>

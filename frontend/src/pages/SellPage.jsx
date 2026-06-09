@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../context/AuthContext.jsx";
 import Notification from "../components/common/Notification.jsx";
 import { useNotification } from "../components/hooks/useNotification.js";
+import {API_BASE_URL} from "../config/api.js";
 
 const CATEGORIES = [
   "Electronics & Gadgets",
@@ -199,7 +200,7 @@ export default function SellPage() {
       Object.entries(form).forEach(([k, v]) => payload.append(k, v));
       images.forEach(({ file }) => payload.append("images", file));
 
-      const res = await fetch("http://localhost:5000/api/listings", {
+      const res = await fetch(`${API_BASE_URL}/api/listings`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: payload,
@@ -212,7 +213,7 @@ export default function SellPage() {
           "Listing Published! 🎉",
           `"${form.title}" is now live on the marketplace.`,
         );
-        setTimeout(() => navigate(`/listing/${data.listing._id}`), 2000);
+        setTimeout(() => navigate(`/listings`), 2000);
       } else {
         showError(
           "Failed to Publish",

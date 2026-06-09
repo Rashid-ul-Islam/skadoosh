@@ -56,10 +56,11 @@ const listingSchema = new mongoose.Schema(
             default: 1,
             min: 1,
         },
+
         // ── Images ───────────────────────────────────────────────────────────────
         images: [
             {
-                url: { type: String, required: true },      // local path or cloud URL
+                url: { type: String, required: true },
                 filename: { type: String },
             },
         ],
@@ -102,6 +103,20 @@ const listingSchema = new mongoose.Schema(
             maxlength: 1000,
         },
 
+        // ── Location (copied from seller at creation time) ────────────────────────
+        // Stored on the listing so geo queries don't require a join through User.
+        location: {
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+            },
+            coordinates: {
+                type: [Number], // [lng, lat]  ← GeoJSON order
+                required: true,
+            },
+        },
+
         // ── Status ────────────────────────────────────────────────────────────────
         status: {
             type: String,
@@ -113,7 +128,8 @@ const listingSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Text search index
+// ── Indexes ───────────────────────────────────────────────────────────────────
 listingSchema.index({ title: "text", description: "text" });
+listingSchema.index({ location: "2dsphere" }); // enables $near / $geoWithin queries
 
 export default mongoose.model("Listing", listingSchema);
