@@ -10,6 +10,9 @@ import VerifyEmail from "./pages/VerifyEmail.jsx";
 import SellPage from "./pages/SellPage.jsx";
 import ListingPage from "./pages/ListingPage.jsx";
 import Wishlist from "./pages/Wishlist.jsx";
+import Checkout from "./pages/Checkout.jsx";
+import Orders from "./pages/SellerOrderPage.jsx"
+import MyOrders from "./pages/BuyerOrderPage.jsx"
 import { Navigate, useLocation } from "react-router-dom";
 
 function ScrollToTop() {
@@ -37,6 +40,9 @@ export default function App() {
           <Route path="/sell" element={<SellPage />} />
           <Route path="/listings" element={<ListingPage />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/my-orders" element={<MyOrders />} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -12,6 +12,8 @@ import pool from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import listingRoutes from "./routes/listingRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+
 
 // ── DNS override (keep your original setting) ──────────────────────────────────
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
@@ -77,7 +79,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/cart", cartRoutes);
-
+app.use("/api/orders", orderRoutes);
 // Serve uploaded images as static files
 app.use("/uploads", express.static("uploads"));
 

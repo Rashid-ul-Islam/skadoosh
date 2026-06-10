@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
   // `user` is the logged-in user object (or null if logged out).
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [isHydrating, setIsHydrating] = useState(true);
 
   const persistUser = useCallback((nextUser) => {
     setUser(nextUser);
@@ -29,7 +30,10 @@ export function AuthProvider({ children }) {
   // Load saved auth state when the app starts.
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
-    if (!savedToken) return;
+    if (!savedToken) {
+      setIsHydrating(false);
+      return;
+    }
 
     // Validate the stored token against the server on every app load
     fetch(`${API_BASE_URL}/api/auth/me`, {
@@ -45,6 +49,9 @@ export function AuthProvider({ children }) {
         // Token expired, account deactivated, or network error — force logout
         persistUser(null);
         localStorage.removeItem("token");
+      })
+      .finally(() => {
+        setIsHydrating(false);
       });
   }, [persistUser]);
 
@@ -70,11 +77,12 @@ export function AuthProvider({ children }) {
       user,
       token,
       isLoggedIn: Boolean(user && token),
+      isHydrating,
       login,
       logout,
       updateUser: persistUser,
     }),
-    [user, token, login, logout, persistUser],
+    [user, token, isHydrating, login, logout, persistUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

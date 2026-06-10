@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticate } from "../middleware/auth.js"; // your existing JWT middleware
+import { protect } from "../middleware/authMiddleware.js";
 import {
     createOrder,
     createOrderFromCart,
@@ -17,8 +17,7 @@ import {
 
 const router = express.Router();
 
-// All order routes require authentication
-router.use(authenticate);
+router.use(protect);
 
 // ── Create ────────────────────────────────────────────────────────────────────
 // POST /api/orders              → direct "Request Item" from product page

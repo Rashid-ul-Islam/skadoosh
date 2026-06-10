@@ -418,6 +418,12 @@ export default function NavBar() {
                       My Orders
                     </Link>
                     <Link
+                      to="/my-orders"
+                      className="block hover:bg-slate-700/70 px-4 py-2 cursor-pointer transition-all duration-300 text-white hover:text-emerald-400 hover:translate-x-1"
+                    >
+                      Order History
+                    </Link>
+                    <Link
                       to="/listings"
                       className="block hover:bg-slate-700/70 px-4 py-2 cursor-pointer transition-all duration-300 text-white hover:text-emerald-400 hover:translate-x-1"
                     >

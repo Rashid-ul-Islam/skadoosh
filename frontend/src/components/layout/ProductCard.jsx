@@ -36,6 +36,8 @@ const ProductCard = ({
   const [isLiked, setIsLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     if (!productId) return;
@@ -79,17 +81,62 @@ const ProductCard = ({
 
   const handleLoginSuccess = () => {
     setIsLoginModalOpen(false);
-    // Re-trigger wishlist toggle now that the user is logged in.
-    // We call the toggle via a synthetic event stub (stopPropagation is a no-op here).
-    handleToggleFavorite({ stopPropagation: () => {} });
+    if (pendingAction === "wishlist") {
+      handleToggleFavorite({ stopPropagation: () => {} });
+    }
+    if (pendingAction === "cart") {
+      performAddToCart();
+    }
+    setPendingAction(null);
   };
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  const performAddToCart = async () => {
+    if (!productId) return;
+    if (quantity <= 0) return;
+    if (!isLoggedIn || !token) return;
+
+    setIsLoading(true);
+    try {
+      const body = {
+        listingId: productId,
+        quantity,
+      };
+
+      if (isRental) {
+        body.rentalDays = product.minRentalDays ?? 1;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/cart/items`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("addToCart error:", data.error);
+        return;
+      }
+
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+      onAddToCart?.(product, quantity);
+      setQuantity(0);
+    } catch (error) {
+      console.error("performAddToCart error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleToggleFavorite = async (e) => {
     e.stopPropagation();
 
     if (!isLoggedIn || !token) {
+      setPendingAction("wishlist");
       setIsLoginModalOpen(true);
       return;
     }
@@ -136,12 +183,14 @@ const ProductCard = ({
 
   const handleAddToCart = () => {
     if (quantity <= 0) return;
-    setIsLoading(true);
-    setTimeout(() => {
-      onAddToCart?.(product, quantity);
-      setQuantity(0);
-      setIsLoading(false);
-    }, 300);
+
+    if (!isLoggedIn || !token) {
+      setPendingAction("cart");
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    performAddToCart();
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -284,24 +333,31 @@ const ProductCard = ({
 
         {/* Add to cart */}
         {showAddToCartButton && (
-          <button
-            disabled={quantity === 0 || isLoading}
-            onClick={handleAddToCart}
-            className={`w-full py-2.5 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              quantity > 0
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-gray-300 cursor-not-allowed"
-            }`}
-          >
-            {isLoading ? (
-              "Adding…"
-            ) : (
-              <>
-                <ShoppingCart className="w-4 h-4" />
-                {quantity > 0 ? `Add ${quantity} to Cart` : "Select Quantity"}
-              </>
+          <>
+            <button
+              disabled={quantity === 0 || isLoading}
+              onClick={handleAddToCart}
+              className={`w-full py-2.5 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                quantity > 0
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-gray-300 cursor-not-allowed"
+              }`}
+            >
+              {isLoading ? (
+                "Adding…"
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  {quantity > 0 ? `Add ${quantity} to Cart` : "Select Quantity"}
+                </>
+              )}
+            </button>
+            {showSuccessMessage && (
+              <p className="mt-2 text-sm text-emerald-600 font-medium text-center">
+                Added to cart!
+              </p>
             )}
-          </button>
+          </>
         )}
       </div>
 
