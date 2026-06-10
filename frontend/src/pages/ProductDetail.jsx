@@ -63,6 +63,7 @@ const ProductDetailsPage = () => {
   const [error, setError] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [rentalDays, setRentalDays] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -155,6 +156,10 @@ const ProductDetailsPage = () => {
 
         setProduct(normalised);
         setProductImages(normalised.images);
+        // Initialise rentalDays to the listing's minimum (or 1 if unset)
+        if (listing.listingType === "rent") {
+          setRentalDays(listing.minRentalDays || 1);
+        }
         // No category hierarchy in this API; use a single breadcrumb entry
         setCategories([
           { category_id: listing.category, name: listing.category },
@@ -202,23 +207,52 @@ const ProductDetailsPage = () => {
   };
 
   const handleAddToCart = async () => {
-    if (quantity === 0) return;
-
     if (!isLoggedIn) {
       setShowLoginModal(true);
       return;
     }
 
+    if (!product?._id) return;
+
+    // Validate rental days against listing constraints before hitting the API
+    if (product.listingType === "rent") {
+      if (!rentalDays || rentalDays < 1) return;
+      if (product.minRentalDays && rentalDays < product.minRentalDays) return;
+      if (product.maxRentalDays && rentalDays > product.maxRentalDays) return;
+    }
+
     setIsCartLoading(true);
-    setTimeout(() => {
+    try {
+      const body = {
+        listingId: product._id,
+        quantity,
+        ...(product.listingType === "rent" && { rentalDays }),
+      };
+
+      const res = await fetch(`${API_BASE}/api/cart/items`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        console.error("addToCart error:", data.error);
+        return;
+      }
+
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
-
-      if (cartBarRef.current && cartBarRef.current.refreshCart) {
-        cartBarRef.current.refreshCart();
-      }
+      cartBarRef.current?.refreshCart();
+    } catch (err) {
+      console.error("handleAddToCart error:", err);
+    } finally {
       setIsCartLoading(false);
-    }, 600);
+    }
   };
 
   const handleCategorySelect = (category, path) => {
@@ -589,6 +623,64 @@ const ProductDetailsPage = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Rental days — only shown for rent listings */}
+              {product?.listingType === "rent" && (
+                <div>
+                  <h3 className="text-lg text-black font-semibold mb-3">
+                    Rental Duration (days)
+                  </h3>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center border rounded-lg">
+                      <button
+                        onClick={() =>
+                          setRentalDays((d) =>
+                            Math.max(product.minRentalDays || 1, d - 1),
+                          )
+                        }
+                        className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={rentalDays <= (product.minRentalDays || 1)}
+                      >
+                        <Minus className="w-4 h-4 text-black" />
+                      </button>
+                      <span className="px-4 py-2 font-medium text-black min-w-[3rem] text-center">
+                        {rentalDays}
+                      </span>
+                      <button
+                        onClick={() =>
+                          setRentalDays((d) =>
+                            Math.min(product.maxRentalDays || 9999, d + 1),
+                          )
+                        }
+                        className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={
+                          product.maxRentalDays
+                            ? rentalDays >= product.maxRentalDays
+                            : false
+                        }
+                      >
+                        <Plus className="w-4 h-4 text-black" />
+                      </button>
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      {product.minRentalDays && `min ${product.minRentalDays}d`}
+                      {product.minRentalDays && product.maxRentalDays && " · "}
+                      {product.maxRentalDays && `max ${product.maxRentalDays}d`}
+                    </span>
+                  </div>
+                  {/* Running rental cost preview */}
+                  <p className="text-sm text-gray-500 mt-2">
+                    Estimated:{" "}
+                    <span className="font-semibold text-gray-800">
+                      ৳
+                      {(
+                        (product.rentPricePerDay || 0) * rentalDays
+                      ).toLocaleString()}
+                    </span>{" "}
+                    for {rentalDays} day{rentalDays !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex space-x-4">

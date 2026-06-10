@@ -1,5 +1,4 @@
 import express from "express";
-import { authenticate } from "../middleware/auth.js"; // your existing JWT middleware
 import {
     getCart,
     addToCart,
@@ -7,11 +6,12 @@ import {
     removeCartItem,
     clearCart,
 } from "../controllers/cartController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// All cart routes require authentication
-router.use(authenticate);
+router.use(protect);
+
 
 // GET    /api/cart          → get current user's cart
 router.get("/", getCart);

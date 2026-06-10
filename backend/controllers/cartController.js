@@ -1,6 +1,7 @@
 import Cart from "../models/cart.js";
 import Listing from "../models/listing.js";
-import { API_BASE_URL } from "../config/api.js"; // adjust path to your config
+
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:5000";
 
 /**
  * Resolve a listing's first image to a full URL.
@@ -49,8 +50,11 @@ export async function addToCart(req, res) {
             });
         }
 
-        // Prevent seller from adding their own listing to cart
-        if (listing.seller._id.toString() === req.user._id.toString()) {
+        // Prevent seller from adding their own listing to cart.
+        // listing.seller may be a populated object or a bare ObjectId (if the
+        // seller document was deleted), so we normalise both cases.
+        const sellerIdStr = (listing.seller?._id ?? listing.seller)?.toString();
+        if (sellerIdStr === req.user._id.toString()) {
             return res.status(403).json({ error: "You cannot add your own listing to the cart." });
         }
 
@@ -86,13 +90,14 @@ export async function addToCart(req, res) {
             rentPricePerDay: listing.rentPricePerDay,
             image: resolveImage(listing),
             condition: listing.condition,
-            sellerName: `${listing.seller.firstName} ${listing.seller.lastName}`,
+            sellerName: listing.seller?.firstName
+                ? `${listing.seller.firstName} ${listing.seller.lastName}`
+                : "Unknown Seller",
             quantity,
             ...(listing.listingType === "rent" && { rentalDays }),
         };
 
         if (existingIdx >= 0) {
-            // Update existing item quantity
             cart.items[existingIdx].quantity += quantity;
             if (rentalDays) cart.items[existingIdx].rentalDays = rentalDays;
         } else {
@@ -132,8 +137,24 @@ export async function updateCartItem(req, res) {
             if (quantity < 1) return res.status(400).json({ error: "Quantity must be at least 1." });
             item.quantity = quantity;
         }
+
         if (rentalDays !== undefined) {
-            if (rentalDays < 1) return res.status(400).json({ error: "Rental days must be at least 1." });
+            if (rentalDays < 1)
+                return res.status(400).json({ error: "Rental days must be at least 1." });
+
+            // Validate against listing's min/max rental constraints
+            const listing = await Listing.findById(item.listing);
+            if (listing) {
+                if (listing.minRentalDays && rentalDays < listing.minRentalDays)
+                    return res.status(400).json({
+                        error: `Minimum rental period is ${listing.minRentalDays} day(s).`,
+                    });
+                if (listing.maxRentalDays && rentalDays > listing.maxRentalDays)
+                    return res.status(400).json({
+                        error: `Maximum rental period is ${listing.maxRentalDays} day(s).`,
+                    });
+            }
+
             item.rentalDays = rentalDays;
         }
 

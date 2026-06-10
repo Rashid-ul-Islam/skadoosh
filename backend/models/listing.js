@@ -141,4 +141,5 @@ const listingSchema = new mongoose.Schema(
 listingSchema.index({ title: "text", description: "text" });
 listingSchema.index({ location: "2dsphere" }); // enables $near / $geoWithin queries
 
-export default mongoose.model("Listing", listingSchema);
+export default mongoose.models.Listing ||
+    mongoose.model("Listing", listingSchema);
