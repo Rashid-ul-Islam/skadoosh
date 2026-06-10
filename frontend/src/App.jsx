@@ -1,4 +1,4 @@
-import React from "react";
+import {React, useEffect} from "react";
 import Homepage from "./pages/Homepage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -10,12 +10,23 @@ import VerifyEmail from "./pages/VerifyEmail.jsx";
 import SellPage from "./pages/SellPage.jsx";
 import ListingPage from "./pages/ListingPage.jsx";
 import Wishlist from "./pages/Wishlist.jsx";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <NavBar />
         <Routes>
           <Route path="/" element={<Homepage />} />

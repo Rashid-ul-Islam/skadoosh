@@ -50,7 +50,7 @@ const formatDate = (dateString) => {
 const ProductDetailsPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
-  const { user, isLoggedIn } = useAuth();
+  const { user, token, isLoggedIn, updateUser } = useAuth();
   const cartBarRef = useRef(null);
 
   // Base URL for serving listing images from the backend
@@ -193,15 +193,12 @@ const ProductDetailsPage = () => {
     }
   }, [isLoggedIn, user, product?._id]);
 
-  // Close login modal when user successfully logs in
-  useEffect(() => {
-    if (isLoggedIn && showLoginModal) {
-      setShowLoginModal(false);
-    }
-  }, [isLoggedIn, showLoginModal]);
+  // isFavorite is derived from user.wishlist via checkIfLiked — no modal-close effect needed
 
-  const checkIfLiked = async () => {
-    setIsFavorite(false);
+  const checkIfLiked = () => {
+    if (!user || !product?._id) return;
+    const wishlist = Array.isArray(user.wishlist) ? user.wishlist : [];
+    setIsFavorite(wishlist.some((item) => item?.toString() === product._id));
   };
 
   const handleAddToCart = async () => {
@@ -240,33 +237,52 @@ const ProductDetailsPage = () => {
   };
 
   const handleToggleFavorite = async () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !token) {
       setShowLoginModal(true);
       return;
     }
 
-    if (!user || !(user._id || user.user_id)) {
-      console.error("User data is not available:", user);
-      showWarning("Login Required", "Please log in again to manage favorites");
-      setShowLoginModal(true);
-      return;
-    }
-
-    if (!product || !product._id) {
-      console.error("Product data is not available:", product);
-      showError("Product Error", "Product information is missing");
-      return;
-    }
+    if (!product?._id) return;
 
     setIsLikesLoading(true);
-    setTimeout(() => {
+    try {
+      const method = isFavorite ? "DELETE" : "POST";
+      const res = await fetch(`${API_BASE}/api/auth/wishlist/${product._id}`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Failed to update wishlist.");
+      updateUser?.(body.user ?? null);
       setIsFavorite(!isFavorite);
-      showSuccess(
-        "Favorites Updated!",
-        isFavorite ? "Removed from favorites" : "Added to favorites",
-      );
+    } catch (error) {
+      console.error("Wishlist toggle failed:", error);
+    } finally {
       setIsLikesLoading(false);
-    }, 400);
+    }
+  };
+
+  const handleWishlistLoginSuccess = async () => {
+    setShowLoginModal(false);
+    // Read fresh token directly — useAuth hasn't re-rendered yet
+    const freshToken = localStorage.getItem("token");
+    if (!freshToken || !product?._id) return;
+    setIsLikesLoading(true);
+    try {
+      const method = isFavorite ? "DELETE" : "POST";
+      const res = await fetch(`${API_BASE}/api/auth/wishlist/${product._id}`, {
+        method,
+        headers: { Authorization: `Bearer ${freshToken}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Failed to update wishlist.");
+      updateUser?.(body.user ?? null);
+      setIsFavorite(!isFavorite);
+    } catch (error) {
+      console.error("Wishlist toggle after login failed:", error);
+    } finally {
+      setIsLikesLoading(false);
+    }
   };
 
   const handleQuantityChange = (change) => {
@@ -369,7 +385,7 @@ const ProductDetailsPage = () => {
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 pt-0 pb-8">
           {renderBreadcrumb()}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -945,6 +961,7 @@ const ProductDetailsPage = () => {
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleWishlistLoginSuccess}
       />
     </div>
   );
