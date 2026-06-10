@@ -129,7 +129,7 @@ const listingSchema = new mongoose.Schema(
         // ── Status ────────────────────────────────────────────────────────────────
         status: {
             type: String,
-            enum: ["active", "sold", "rented", "archived"],
+            enum: ["active", "sold", "rented", "archived", "reserved", "cancelled"],
             default: "active",
             index: true,
         },
