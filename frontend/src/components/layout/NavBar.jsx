@@ -6,15 +6,8 @@ import { ShoppingCart, Heart, User, PackageSearch, Shield } from "lucide-react";
 import { Button } from "../ui/button.jsx";
 import LoginModal from "../auth/LoginModal.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import {API_BASE_URL} from "../../config/api.js";
+import { API_BASE_URL } from "../../config/api.js";
 import { Tag } from "lucide-react";
-
-// ---------------------------------------------------------------------------
-// Mock data — replaces all API calls
-// ---------------------------------------------------------------------------
-
-// Simulated cart: { [user_id]: totalQuantity }
-const MOCK_CART_COUNTS = { 1: 3, 2: 7 };
 
 // Product catalog used for quick search
 const MOCK_PRODUCTS = [
@@ -94,7 +87,7 @@ export default function NavBar() {
   const { user, isLoggedIn, logout: authLogout } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pendingRedirect, setPendingRedirect] = useState(null);
-  const [cartItemCount, setCartItemCount] = useState(0);
+  const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -105,15 +98,12 @@ export default function NavBar() {
   const isAdmin = user?.role_id === "admin";
   const isDeliveryBoy = user?.role_id === "delivery_boy";
 
-  // ------------------------------------------------------------------
-  // Cart count — read from mock data instead of API
-  // ------------------------------------------------------------------
   useEffect(() => {
     if (isLoggedIn && user) {
-      const count = MOCK_CART_COUNTS[user.user_id] ?? 0;
-      setCartItemCount(count);
+      const count = user.wishlist?.length ?? 0;
+      setWishlistItemCount(count);
     } else {
-      setCartItemCount(0);
+      setWishlistItemCount(0);
     }
   }, [isLoggedIn, user]);
 
@@ -180,6 +170,13 @@ export default function NavBar() {
     setSearchResults([]);
     setShowResults(false);
   };
+  const handleWishlistClick = (e) => {
+    if (isLoggedIn) return; // let the <Link> navigate normally
+    e.preventDefault();
+    setPendingRedirect("/wishlist");
+    setIsLoginModalOpen(true);
+  };
+
   const handleSellClick = (e) => {
     e.preventDefault();
 
@@ -355,16 +352,17 @@ export default function NavBar() {
               </Link>
             )}
 
-            {/* Cart */}
+            {/* Wishlist */}
             <Link
-              to="/cart"
+              to="/wishlist"
+              onClick={handleWishlistClick}
               className="relative hover:text-emerald-400 transition-all duration-300 hover:scale-110 group"
-              title="Cart"
+              title="Wishlist"
             >
-              <ShoppingCart className="w-7 h-7 group-hover:drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-              {cartItemCount > 0 && (
+              <Heart className="w-7 h-7 group-hover:drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+              {wishlistItemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                  {cartItemCount}
+                  {wishlistItemCount}
                 </span>
               )}
             </Link>

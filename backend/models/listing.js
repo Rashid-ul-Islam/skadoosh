@@ -103,13 +103,22 @@ const listingSchema = new mongoose.Schema(
             maxlength: 1000,
         },
 
-        // ── Location (copied from seller at creation time) ────────────────────────
-        // Stored on the listing so geo queries don't require a join through User.
+        // ── Location (snapshotted from seller at creation time) ───────────────────
+        // Storing location here lets $near queries run on this collection's own
+        // 2dsphere index with no join to the User collection at query time.
+        //
+        // CRITICAL: Do NOT add `default: "Point"` inside the nested `type` block.
+        // Mongoose treats the inner `type` key as a schema-type discriminator;
+        // putting `default` there corrupts GeoJSON serialisation and the document
+        // will be missing the `type: "Point"` discriminator in MongoDB, causing
+        // the 2dsphere index to silently reject it and $near to return nothing.
+        //
+        // The correct pattern is to always explicitly set `type: "Point"` when
+        // writing the document (done in createListing via `location: seller.location`).
         location: {
             type: {
                 type: String,
                 enum: ["Point"],
-                default: "Point",
             },
             coordinates: {
                 type: [Number], // [lng, lat]  ← GeoJSON order

@@ -1,5 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import {API_BASE_URL} from "../config/api.js";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from "react";
+import { API_BASE_URL } from "../config/api.js";
 
 // AuthContext stores login state so it survives page navigation.
 // It reads/writes localStorage to keep the user logged in after refresh.
@@ -9,6 +16,15 @@ export function AuthProvider({ children }) {
   // `user` is the logged-in user object (or null if logged out).
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+
+  const persistUser = useCallback((nextUser) => {
+    setUser(nextUser);
+    if (nextUser) {
+      localStorage.setItem("user", JSON.stringify(nextUser));
+    } else {
+      localStorage.removeItem("user");
+    }
+  }, []);
 
   // Load saved auth state when the app starts.
   useEffect(() => {
@@ -22,32 +38,32 @@ export function AuthProvider({ children }) {
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((data) => {
         // Token is valid — hydrate state with fresh user data from DB
-        setUser(data.user);
+        persistUser(data.user);
         setToken(savedToken);
-        localStorage.setItem("user", JSON.stringify(data.user));
       })
       .catch(() => {
         // Token expired, account deactivated, or network error — force logout
-        localStorage.removeItem("user");
+        persistUser(null);
         localStorage.removeItem("token");
       });
-  }, []);
+  }, [persistUser]);
 
   // Call this after a successful login.
-  const login = (userData, authToken) => {
-    setUser(userData);
-    setToken(authToken);
-    localStorage.setItem("user", JSON.stringify(userData));
-    localStorage.setItem("token", authToken);
-  };
+  const login = useCallback(
+    (userData, authToken) => {
+      persistUser(userData);
+      setToken(authToken);
+      localStorage.setItem("token", authToken);
+    },
+    [persistUser],
+  );
 
   // Call this to log out and clear all auth data.
-  const logout = () => {
-    setUser(null);
+  const logout = useCallback(() => {
+    persistUser(null);
     setToken(null);
-    localStorage.removeItem("user");
     localStorage.removeItem("token");
-  };
+  }, [persistUser]);
 
   const value = useMemo(
     () => ({
@@ -56,8 +72,9 @@ export function AuthProvider({ children }) {
       isLoggedIn: Boolean(user && token),
       login,
       logout,
+      updateUser: persistUser,
     }),
-    [user, token],
+    [user, token, login, logout, persistUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+import Listing from "../models/Listing.js";
 import User from "../models/User.js";
 import { sendVerificationEmail } from "../utils/sendEmail.js";
 
@@ -344,6 +346,122 @@ export const getMe = async (req, res) => {
     } catch (error) {
         console.error("getMe error:", error);
         return res.status(500).json({ error: "Server error. Please try again later." });
+    }
+};
+
+/**
+ * GET /api/auth/wishlist
+ *
+ * Returns the authenticated user's wishlist with listing documents populated.
+ */
+export const getWishlist = async (req, res) => {
+    try {
+        await req.user.populate({
+            path: "wishlist",
+            populate: {
+                path: "seller",
+                select: "firstName lastName",
+            },
+        });
+
+        const wishlist = req.user.wishlist.filter(Boolean);
+
+        return res.status(200).json({
+            wishlist,
+            count: wishlist.length,
+            user: req.user.toSafeObject(),
+        });
+    } catch (error) {
+        console.error("getWishlist error:", error);
+        return res.status(500).json({ error: "Failed to fetch wishlist." });
+    }
+};
+
+/**
+ * POST /api/auth/wishlist/:listingId
+ *
+ * Adds a listing to the current user's wishlist if it is not already present.
+ */
+export const addToWishlist = async (req, res) => {
+    try {
+        const { listingId } = req.params;
+
+        if (!mongoose.isValidObjectId(listingId)) {
+            return res.status(400).json({ error: "Invalid listing id." });
+        }
+
+        const listing = await Listing.findById(listingId).select("_id");
+        if (!listing) {
+            return res.status(404).json({ error: "Listing not found." });
+        }
+
+        const alreadySaved = req.user.wishlist.some((item) => item.toString() === listingId);
+        if (!alreadySaved) {
+            req.user.wishlist.push(listing._id);
+            await req.user.save();
+        }
+
+        await req.user.populate({
+            path: "wishlist",
+            populate: {
+                path: "seller",
+                select: "firstName lastName",
+            },
+        });
+
+        const wishlist = req.user.wishlist.filter(Boolean);
+
+        return res.status(200).json({
+            message: alreadySaved ? "Listing is already in wishlist." : "Listing added to wishlist.",
+            wishlist,
+            count: wishlist.length,
+            user: req.user.toSafeObject(),
+        });
+    } catch (error) {
+        console.error("addToWishlist error:", error);
+        return res.status(500).json({ error: "Failed to add listing to wishlist." });
+    }
+};
+
+/**
+ * DELETE /api/auth/wishlist/:listingId
+ *
+ * Removes a listing from the current user's wishlist.
+ */
+export const removeFromWishlist = async (req, res) => {
+    try {
+        const { listingId } = req.params;
+
+        if (!mongoose.isValidObjectId(listingId)) {
+            return res.status(400).json({ error: "Invalid listing id." });
+        }
+
+        const beforeCount = req.user.wishlist.length;
+        req.user.wishlist = req.user.wishlist.filter((item) => item.toString() !== listingId);
+
+        if (req.user.wishlist.length !== beforeCount) {
+            await req.user.save();
+        }
+
+        await req.user.populate({
+            path: "wishlist",
+            populate: {
+                path: "seller",
+                select: "firstName lastName",
+            },
+        });
+
+        const wishlist = req.user.wishlist.filter(Boolean);
+
+        return res.status(200).json({
+            message: "Listing removed from wishlist.",
+            wishlist,
+            count: wishlist.length,
+            user: req.user.toSafeObject(),
+        });
+    } catch (error) {
+        console.error("removeFromWishlist error:", error);
+        return res.status(500).json({ error: "Failed to remove listing from wishlist." });
     }
 };
 

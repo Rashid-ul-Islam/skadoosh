@@ -8,6 +8,9 @@ import {
     login,
     logout,
     getMe,
+    getWishlist,
+    addToWishlist,
+    removeFromWishlist,
 } from "../controllers/authController.js";
 import { validateRegister, validateCheckEmail, validateLogin } from "../middleware/validate.js";
 import { protect } from "../middleware/authMiddleware.js";
@@ -80,6 +83,15 @@ router.post("/logout", protect, logout);
 
 // GET  /api/auth/me  — returns the current user's profile
 router.get("/me", protect, getMe);
+
+// GET  /api/auth/wishlist  — returns the current user's wishlist
+router.get("/wishlist", protect, getWishlist);
+
+// POST /api/auth/wishlist/:listingId  — adds a listing to the user's wishlist
+router.post("/wishlist/:listingId", protect, addToWishlist);
+
+// DELETE /api/auth/wishlist/:listingId  — removes a listing from the user's wishlist
+router.delete("/wishlist/:listingId", protect, removeFromWishlist);
 
 // GET  /api/auth/verify-email?token=<token>
 router.get("/verify-email", generalLimiter, verifyEmail);

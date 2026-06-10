@@ -33,7 +33,9 @@ export const protect = async (req, res, next) => {
 
         // ── Load user from DB ─────────────────────────────────────────────────
         // Always re-fetch so deactivated / deleted accounts are caught immediately.
-        const user = await User.findById(decoded.id).select("+loginAttempts +lockUntil");
+        // `location` is included so getNearbyListings can read buyer coordinates
+        // directly from req.user — no second DB round-trip needed in that handler.
+        const user = await User.findById(decoded.id).select("+loginAttempts +lockUntil +location");
 
         if (!user) {
             return res.status(401).json({ error: "User no longer exists." });

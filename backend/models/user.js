@@ -56,7 +56,7 @@ const userSchema = new mongoose.Schema(
                         Array.isArray(v) &&
                         v.length === 2 &&
                         v[0] >= -180 && v[0] <= 180 &&
-                        v[1] >= -90  && v[1] <= 90,
+                        v[1] >= -90 && v[1] <= 90,
                     message: "Invalid coordinates",
                 },
             },
@@ -87,6 +87,13 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+
+        wishlist: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Listing",
+            },
+        ],
 
         // ── Login tracking (for security auditing) ────────────────────────────────
         lastLogin: {
@@ -149,6 +156,9 @@ userSchema.methods.toSafeObject = function () {
         role: this.role,
         isEmailVerified: this.isEmailVerified,
         isActive: this.isActive,
+        wishlist: Array.isArray(this.wishlist)
+            ? this.wishlist.map((item) => item?._id?.toString?.() || item.toString())
+            : [],
         lastLogin: this.lastLogin,
         createdAt: this.createdAt,
     };

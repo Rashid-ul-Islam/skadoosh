@@ -9,6 +9,8 @@ import CheckEmail from "./pages/CheckEmail.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import SellPage from "./pages/SellPage.jsx";
 import ListingPage from "./pages/ListingPage.jsx";
+import Wishlist from "./pages/Wishlist.jsx";
+import { Navigate } from "react-router-dom";
 
 export default function App() {
   return (
@@ -23,6 +25,7 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/sell" element={<SellPage />} />
           <Route path="/listings" element={<ListingPage />} />
+          <Route path="/wishlist" element={<Wishlist />} />
         </Routes>
       </Router>
     </AuthProvider>

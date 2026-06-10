@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Heart, Star, ShoppingCart, Truck, Tag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../../config/api";
+import { useAuth } from "../../context/AuthContext.jsx";
+import LoginModal from "../auth/LoginModal.jsx";
 
 /**
  * ProductCard — works with both the Listing schema shape (from API) and the
@@ -15,6 +18,7 @@ const ProductCard = ({
   product,
   onProductClick,
   onAddToCart,
+  onWishlistChange,
   showQuantityControls = true,
   showFavoriteButton = true,
   showAddToCartButton = true,
@@ -23,6 +27,7 @@ const ProductCard = ({
   cardPadding = "p-4",
 }) => {
   const navigate = useNavigate();
+  const { user, token, isLoggedIn, updateUser } = useAuth();
 
   // Support both Listing schema (_id) and legacy shape (product_id / id)
   const productId = product?._id || product?.product_id || product?.id;
@@ -30,6 +35,14 @@ const ProductCard = ({
   const [quantity, setQuantity] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!productId) return;
+
+    const wishlist = Array.isArray(user?.wishlist) ? user.wishlist : [];
+    setIsLiked(wishlist.some((item) => item?.toString?.() === productId));
+  }, [productId, user]);
 
   // ── Derived display values ─────────────────────────────────────────────────
 
@@ -64,11 +77,53 @@ const ProductCard = ({
 
   const isRental = product?.listingType === "rent";
 
+  const handleLoginSuccess = () => {
+    setIsLoginModalOpen(false);
+    // Re-trigger wishlist toggle now that the user is logged in.
+    // We call the toggle via a synthetic event stub (stopPropagation is a no-op here).
+    handleToggleFavorite({ stopPropagation: () => {} });
+  };
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const handleToggleFavorite = (e) => {
+  const handleToggleFavorite = async (e) => {
     e.stopPropagation();
-    setIsLiked((prev) => !prev);
+
+    if (!isLoggedIn || !token) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    if (!productId) return;
+
+    setIsLoading(true);
+    try {
+      const method = isLiked ? "DELETE" : "POST";
+      const res = await fetch(
+        `${API_BASE_URL}/api/auth/wishlist/${productId}`,
+        {
+          method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || "Failed to update wishlist.");
+      }
+
+      updateUser?.(
+        body.user ?? { ...user, wishlist: body.user?.wishlist ?? [] },
+      );
+      onWishlistChange?.(body.user ?? null);
+      setIsLiked(!isLiked);
+    } catch (error) {
+      console.error("Wishlist toggle failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleProductClick = () => {
@@ -120,10 +175,17 @@ const ProductCard = ({
         {showFavoriteButton && (
           <button
             onClick={handleToggleFavorite}
-            aria-label={
-              isLiked ? "Remove from favourites" : "Add to favourites"
+            aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+            title={
+              isLoggedIn
+                ? isLiked
+                  ? "Remove from wishlist"
+                  : "Add to wishlist"
+                : "Log in to save items"
             }
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 shadow hover:scale-110 transition-transform"
+            className={`absolute top-2 right-2 p-1.5 rounded-full bg-white/90 shadow transition-transform ${
+              isLoading ? "opacity-60 cursor-wait" : "hover:scale-110"
+            }`}
           >
             <Heart
               className={`w-4 h-4 ${
@@ -242,6 +304,18 @@ const ProductCard = ({
           </button>
         )}
       </div>
+
+      {/* Login Modal — portalled to body so it's never clipped by card overflow */}
+      {isLoginModalOpen &&
+        createPortal(
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+            currentPath={`/product/${productId}`}
+          />,
+          document.body,
+        )}
     </div>
   );
 };

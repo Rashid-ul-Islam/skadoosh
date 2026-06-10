@@ -78,8 +78,11 @@ export const createListing = async (req, res) => {
             return res.status(400).json({ error: "At least one image is required." });
         }
 
-        // ── Fetch seller to copy their location onto the listing ───────────────
-        const seller = await User.findById(req.user._id).select("location");
+        // ── Fetch seller's location (lean — only the field we need) ────────────
+        // We intentionally snapshot the seller's current location onto the listing
+        // so that geo queries run entirely on the Listing collection's 2dsphere
+        // index without ever joining through the User collection at query time.
+        const seller = await User.findById(req.user._id).select("location").lean();
         if (!seller?.location?.coordinates?.length) {
             return res.status(400).json({
                 error: "Your account does not have a saved location. Please update your profile before listing.",
@@ -104,7 +107,14 @@ export const createListing = async (req, res) => {
             negotiable: bool(negotiable),
             deliveryAvailable: bool(deliveryAvailable),
             images,
-            location: seller.location, // copy seller's GeoJSON point
+            // Always construct the GeoJSON object explicitly.
+            // Never spread seller.location directly — if the user document was
+            // saved before the schema fix, it may be missing the `type: "Point"`
+            // discriminator, which would cause the 2dsphere index to reject it.
+            location: {
+                type: "Point",
+                coordinates: seller.location.coordinates,
+            },
             // sell
             ...(listingType === "sell" && { price: num(price) }),
             // rent
@@ -142,6 +152,10 @@ export const getListings = async (req, res) => {
             status = "active",
         } = req.query;
 
+        // Coerce early so arithmetic is always numeric
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, parseInt(limit, 10) || 20); // cap at 100
+
         const filter = { status };
         if (category) filter.category = category;
         if (listingType) filter.listingType = listingType;
@@ -155,14 +169,16 @@ export const getListings = async (req, res) => {
 
         const [listings, total] = await Promise.all([
             Listing.find(filter)
-                .populate("seller", "name email")
+                // FIX: User schema uses firstName/lastName, not name
+                .populate("seller", "firstName lastName email")
                 .sort({ createdAt: -1 })
-                .skip((page - 1) * limit)
-                .limit(Number(limit)),
+                .skip((pageNum - 1) * limitNum)
+                .limit(limitNum)
+                .lean(),
             Listing.countDocuments(filter),
         ]);
 
-        res.json({ listings, total, page: Number(page), pages: Math.ceil(total / limit) });
+        res.json({ listings, total, page: pageNum, pages: Math.ceil(total / limitNum) });
     } catch (err) {
         console.error("getListings error:", err);
         res.status(500).json({ error: "Failed to fetch listings." });
@@ -170,22 +186,49 @@ export const getListings = async (req, res) => {
 };
 
 // ── GET /api/listings/nearby  (protected) ─────────────────────────────────────
-// Returns active sell listings within NEARBY_RADIUS_METERS of the logged-in
-// user's saved location, sorted by proximity (nearest first).
+// Returns active sell listings within NEARBY_RADIUS_METERS of the buyer's
+// saved location, sorted nearest-first.
+//
+// EFFICIENCY DESIGN:
+//   • The listing document already stores a `location` field (snapshotted from
+//     the seller at creation time), so the $near query hits the Listing
+//     collection's own 2dsphere index — no join, no second collection scan.
+//   • The buyer's coordinates come from req.user (populated by authMiddleware)
+//     with a single .lean() select, avoiding a second DB round-trip when the
+//     middleware already hydrates the user object. If authMiddleware only
+//     attaches _id, we do one lean select — still a single extra query at most.
+//   • .lean() returns plain JS objects (no Mongoose overhead) for read-only use.
+// ─────────────────────────────────────────────────────────────────────────────
 export const getNearbyListings = async (req, res) => {
     try {
-        const { limit = 6 } = req.query;
+        const limitNum = Math.min(50, parseInt(req.query.limit, 10) || 10);
 
-        // Load the requesting user's location
-        const user = await User.findById(req.user._id).select("location");
-        if (!user?.location?.coordinates?.length) {
+        // ── 1. Get buyer coordinates ────────────────────────────────────────────
+        // Prefer coordinates already on req.user (set by authMiddleware) to avoid
+        // an extra DB round-trip. Fall back to a lean DB fetch if not present.
+        let coords = req.user?.location?.coordinates;
+
+        if (!coords?.length) {
+            const user = await User.findById(req.user._id)
+                .select("location")
+                .lean();
+            coords = user?.location?.coordinates;
+        }
+
+        if (!coords?.length) {
             return res.status(400).json({
                 error: "Your account does not have a saved location. Please update your profile.",
             });
         }
 
-        const [lng, lat] = user.location.coordinates; // GeoJSON order
+        const [lng, lat] = coords; // GeoJSON order: [longitude, latitude]
 
+        // ── 2. Geo query on Listing's own 2dsphere index ────────────────────────
+        // The listing's `location` field was snapshotted from the seller at
+        // creation time, so "$near on Listing.location" is exactly:
+        //   "seller was within X km when they listed this item"
+        // which satisfies the "seller within 20 km of buyer" requirement without
+        // touching the User collection at all.
         const listings = await Listing.find({
             status: "active",
             listingType: "sell",
@@ -196,8 +239,10 @@ export const getNearbyListings = async (req, res) => {
                 },
             },
         })
+            .select("-__v")                              // trim unneeded field
             .populate("seller", "firstName lastName")
-            .limit(Number(limit));
+            .limit(limitNum)
+            .lean();
 
         res.json({ listings, total: listings.length });
     } catch (err) {
@@ -209,12 +254,10 @@ export const getNearbyListings = async (req, res) => {
 // ── GET /api/listings/my  (protected) ────────────────────────────────────────
 export const getMyListings = async (req, res) => {
     try {
-        const {
-            page = 1,
-            limit = 20,
-            status,
-            listingType,
-        } = req.query;
+        const { page = 1, limit = 20, status, listingType } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, parseInt(limit, 10) || 20);
 
         const filter = { seller: req.user._id };
         if (status) filter.status = status;
@@ -223,16 +266,17 @@ export const getMyListings = async (req, res) => {
         const [listings, total] = await Promise.all([
             Listing.find(filter)
                 .sort({ createdAt: -1 })
-                .skip((Number(page) - 1) * Number(limit))
-                .limit(Number(limit)),
+                .skip((pageNum - 1) * limitNum)
+                .limit(limitNum)
+                .lean(),
             Listing.countDocuments(filter),
         ]);
 
         res.json({
             listings,
             total,
-            page: Number(page),
-            pages: Math.ceil(total / Number(limit)),
+            page: pageNum,
+            pages: Math.ceil(total / limitNum),
         });
     } catch (err) {
         console.error("getMyListings error:", err);
@@ -243,10 +287,9 @@ export const getMyListings = async (req, res) => {
 // ── GET /api/listings/:id ─────────────────────────────────────────────────────
 export const getListingById = async (req, res) => {
     try {
-        const listing = await Listing.findById(req.params.id).populate(
-            "seller",
-            "firstName lastName email phoneNumber"
-        );
+        const listing = await Listing.findById(req.params.id)
+            .populate("seller", "firstName lastName email phoneNumber")
+            .lean();
         if (!listing) return res.status(404).json({ error: "Listing not found." });
         res.json({ listing });
     } catch (err) {
