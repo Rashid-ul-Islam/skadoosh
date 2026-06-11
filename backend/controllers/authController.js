@@ -2,7 +2,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import Listing from "../models/listing.js";
-import User from "../models/User.js";
+import User from "../models/user.js";
 import { sendVerificationEmail } from "../utils/sendEmail.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
