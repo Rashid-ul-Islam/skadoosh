@@ -14,6 +14,7 @@ import Checkout from "./pages/Checkout.jsx";
 import Orders from "./pages/SellerOrderPage.jsx"
 import MyOrders from "./pages/BuyerOrderPage.jsx"
 import { Navigate, useLocation } from "react-router-dom";
+import OrderChatPage from "./pages/OrderChatPage.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -23,6 +24,13 @@ function ScrollToTop() {
   }, [pathname]);
 
   return null;
+}
+
+import { useAuth } from "./context/AuthContext.jsx";
+
+function ProtectedRoute({ children }) {
+  const { token } = useAuth();
+  return token ? children : <Navigate to="/login" replace />;
 }
 
 export default function App() {
@@ -43,6 +51,14 @@ export default function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/my-orders" element={<MyOrders />} />
+          <Route
+            path="/chat/order/:orderId"
+            element={
+              <ProtectedRoute>
+                <OrderChatPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>
