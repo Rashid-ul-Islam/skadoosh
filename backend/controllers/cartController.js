@@ -1,7 +1,10 @@
 import Cart from "../models/cart.js";
 import Listing from "../models/listing.js";
 
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.API_BASE_URL || process.env.VITE_API_URL;
+if (!API_BASE_URL) {
+    throw new Error("API_BASE_URL or VITE_API_URL must be defined in environment variables.");
+}
 
 /**
  * Resolve a listing's first image to a full URL.

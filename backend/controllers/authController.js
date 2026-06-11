@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import Listing from "../models/Listing.js";
+import Listing from "../models/listing.js";
 import User from "../models/User.js";
 import { sendVerificationEmail } from "../utils/sendEmail.js";
 

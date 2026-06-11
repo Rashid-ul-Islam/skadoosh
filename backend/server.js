@@ -34,9 +34,11 @@ app.use(
 );
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
-    .split(",")
-    .map((o) => o.trim());
+const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+const originSources = process.env.ALLOWED_ORIGINS || clientUrl;
+const allowedOrigins = originSources
+    ? originSources.split(",").map((o) => o.trim())
+    : [];
 
 app.use(
     cors({
