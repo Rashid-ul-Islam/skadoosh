@@ -2,8 +2,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import multer from "multer";
-import Listing from "../models/Listing.js";
-import User from "../models/User.js";
+import Listing from "../models/listing.js";
+import User from "../models/user.js";
 
 // ── __dirname shim for ESM ────────────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
