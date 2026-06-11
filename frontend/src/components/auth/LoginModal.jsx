@@ -9,7 +9,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
-import {API_BASE_URL} from "../../config/api.js";
+import { API_BASE_URL } from "../../config/api.js";
 import { Button } from "../ui/button.jsx";
 import { Input } from "../ui/input.jsx";
 import { useAuth } from "../../context/AuthContext.jsx"; // Import useAuth
@@ -122,7 +122,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, currentPath }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px] transition-opacity duration-300"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-[2px] transition-opacity duration-300"
       onClick={handleBackdropClick}
     >
       <div className="relative w-full max-w-md mx-4 bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-400 rounded-3xl shadow-2xl border border-white/30 transform transition-all duration-300 scale-100 p-1">
