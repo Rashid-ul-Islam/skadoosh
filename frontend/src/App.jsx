@@ -15,6 +15,7 @@ import Orders from "./pages/SellerOrderPage.jsx"
 import MyOrders from "./pages/BuyerOrderPage.jsx"
 import { Navigate, useLocation } from "react-router-dom";
 import OrderChatPage from "./pages/OrderChatPage.jsx";
+import InboxPage from "./pages/InboxPage.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -56,6 +57,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <OrderChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inbox"
+            element={
+              <ProtectedRoute>
+                <InboxPage />
               </ProtectedRoute>
             }
           />
