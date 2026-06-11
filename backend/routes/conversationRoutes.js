@@ -1,5 +1,4 @@
 import express from "express";
-import { authenticate } from "../middleware/auth.js";
 import {
     getInbox,
     getConversation,
@@ -16,7 +15,6 @@ import {
 } from "../controllers/conversationController.js";
 
 const router = express.Router();
-router.use(authenticate);
 
 // ── Inbox & unread ────────────────────────────────────────────────────────────
 // GET  /api/conversations              → inbox list

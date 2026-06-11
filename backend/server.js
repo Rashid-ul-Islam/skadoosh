@@ -6,6 +6,7 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
+import http from "http";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import pool from "./config/db.js";
@@ -14,6 +15,7 @@ import listingRoutes from "./routes/listingRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
+import {initSocket} from "./socket/index.js";
 
 
 // ── DNS override (keep your original setting) ──────────────────────────────────
@@ -87,6 +89,13 @@ app.use("/uploads", express.static("uploads"));
 
 // Health-check (useful for deployment probes)
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
+// ── Create HTTP server (required for Socket.IO) ───────────────────────────────
+const httpServer = http.createServer(app);
+
+// ── Attach Socket.IO ──────────────────────────────────────────────────────────
+const io = initSocket(httpServer);
+app.set("io", io);  // ← makes io accessible in controllers via req.app.get("io")
 
 // ── 404 handler ────────────────────────────────────────────────────────────────
 app.use((_req, res) => {
