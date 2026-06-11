@@ -49,8 +49,14 @@ const createTransporter = async () => {
  * @param {string} [options.text]    - plain-text fallback
  */
 export const sendEmail = async ({ to, subject, html, text }) => {
+  console.log("1. Creating transporter...");
   const transporter = await createTransporter();
+  console.log("2. Verifying transporter...");
+  await transporter.verify();
 
+  console.log("3. Transport verified.");
+
+  console.log("4. Sending email...");
   const mailOptions = {
     from: `"${process.env.APP_NAME || "GrocCart"}" <${process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@grocart.com"}>`,
     to,
@@ -76,7 +82,7 @@ export const sendEmail = async ({ to, subject, html, text }) => {
  * @param {string} verifyUrl     - full verification URL with token
  */
 export const sendVerificationEmail = async (to, firstName, verifyUrl) => {
-  const appName = process.env.APP_NAME || "GrocCart";
+  const appName = process.env.APP_NAME || "GroCart";
 
   const html = `
     <!DOCTYPE html>
