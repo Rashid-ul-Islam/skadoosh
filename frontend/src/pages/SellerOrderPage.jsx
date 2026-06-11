@@ -40,72 +40,65 @@ function formatDate(dateStr) {
 const STATUS_CONFIG = {
   requested: {
     label: "Pending",
-    color: "amber",
-    icon: Clock,
-    bg: "bg-amber-50",
-    border: "border-amber-200",
     badge: "bg-amber-100 text-amber-700",
+    border: "border-amber-200",
+    bg: "bg-amber-50",
     dot: "bg-amber-400",
+    icon: Clock,
   },
   accepted: {
     label: "Accepted",
-    color: "blue",
-    icon: CheckCircle2,
-    bg: "bg-blue-50",
-    border: "border-blue-200",
     badge: "bg-blue-100 text-blue-700",
+    border: "border-blue-200",
+    bg: "bg-blue-50",
     dot: "bg-blue-400",
+    icon: CheckCircle2,
   },
   rejected: {
-    label: "Rejected",
-    color: "red",
-    icon: XCircle,
-    bg: "bg-red-50",
-    border: "border-red-200",
+    label: "Declined",
     badge: "bg-red-100 text-red-600",
+    border: "border-red-200",
+    bg: "bg-red-50",
     dot: "bg-red-400",
+    icon: XCircle,
   },
   delivered: {
     label: "Delivered",
-    color: "purple",
-    icon: Truck,
-    bg: "bg-purple-50",
-    border: "border-purple-200",
     badge: "bg-purple-100 text-purple-700",
+    border: "border-purple-200",
+    bg: "bg-purple-50",
     dot: "bg-purple-400",
+    icon: Truck,
   },
   completed: {
     label: "Completed",
-    color: "green",
-    icon: Trophy,
-    bg: "bg-green-50",
-    border: "border-green-200",
     badge: "bg-green-100 text-green-700",
+    border: "border-green-200",
+    bg: "bg-green-50",
     dot: "bg-green-400",
+    icon: Trophy,
   },
   cancelled: {
     label: "Cancelled",
-    color: "gray",
-    icon: Ban,
-    bg: "bg-gray-50",
-    border: "border-gray-200",
     badge: "bg-gray-100 text-gray-500",
+    border: "border-gray-200",
+    bg: "bg-gray-50",
     dot: "bg-gray-400",
+    icon: Ban,
   },
   disputed: {
     label: "Disputed",
-    color: "orange",
-    icon: AlertTriangle,
-    bg: "bg-orange-50",
-    border: "border-orange-200",
     badge: "bg-orange-100 text-orange-700",
+    border: "border-orange-200",
+    bg: "bg-orange-50",
     dot: "bg-orange-400",
+    icon: AlertTriangle,
   },
 };
 
 const ALL_STATUSES = Object.keys(STATUS_CONFIG);
 
-// ── Stats card ────────────────────────────────────────────────────────────────
+// ── Stat card ─────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, colorClass }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
@@ -120,78 +113,20 @@ function StatCard({ label, value, icon: Icon, colorClass }) {
   );
 }
 
-// ── Action buttons per status ─────────────────────────────────────────────────
-function OrderActions({ order, onAction, loading }) {
-  const { status } = order;
-
-  if (status === "requested") {
-    return (
-      <div className="flex gap-2 mt-4">
-        <button
-          onClick={() => onAction(order._id, "accept")}
-          disabled={loading}
-          className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4" />
-          )}
-          Accept
-        </button>
-        <button
-          onClick={() => onAction(order._id, "reject")}
-          disabled={loading}
-          className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 disabled:opacity-60 text-red-600 border border-red-200 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
-        >
-          <XCircle className="w-4 h-4" />
-          Decline
-        </button>
-      </div>
-    );
-  }
-
-  if (status === "accepted") {
-    return (
-      <div className="flex gap-2 mt-4">
-        <button
-          onClick={() => onAction(order._id, "deliver")}
-          disabled={loading}
-          className="flex-1 py-2.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-60 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Truck className="w-4 h-4" />
-          )}
-          Mark as Delivered
-        </button>
-        <button
-          onClick={() => onAction(order._id, "cancel")}
-          disabled={loading}
-          className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-600 rounded-xl text-sm font-semibold transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  }
-
-  return null;
-}
-
 // ── Single order card ─────────────────────────────────────────────────────────
 function OrderCard({ order, onAction, actionLoadingId }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.requested;
-  const Icon = cfg.icon;
   const isLoading = actionLoadingId === order._id;
+  const isActive = ["requested", "accepted", "delivered"].includes(
+    order.status,
+  );
 
   return (
     <div
-      className={`bg-white rounded-2xl border-2 ${cfg.border} overflow-hidden shadow-sm transition-shadow hover:shadow-md`}
+      className={`bg-white rounded-2xl border-2 ${cfg.border} overflow-hidden shadow-sm hover:shadow-md transition-shadow`}
     >
-      {/* Card header */}
+      {/* Header */}
       <div className={`${cfg.bg} px-5 py-3 flex items-center justify-between`}>
         <div className="flex items-center gap-2">
           <span
@@ -209,7 +144,6 @@ function OrderCard({ order, onAction, actionLoadingId }) {
         </span>
       </div>
 
-      {/* Main content */}
       <div className="p-5">
         <div className="flex gap-4">
           {/* Thumbnail */}
@@ -227,12 +161,10 @@ function OrderCard({ order, onAction, actionLoadingId }) {
             )}
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-gray-800 leading-tight truncate mb-1">
               {order.snapshot?.title || "Untitled listing"}
             </h3>
-
             <div className="flex flex-wrap gap-1.5 mb-2">
               {order.snapshot?.listingType === "rent" ? (
                 <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
@@ -250,15 +182,11 @@ function OrderCard({ order, onAction, actionLoadingId }) {
                 </span>
               )}
             </div>
-
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-sm">
-                <User className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-gray-500 text-xs">Buyer:</span>
-                <span className="font-semibold text-gray-700 text-sm">
-                  {order.snapshot?.buyerName || "—"}
-                </span>
-              </div>
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <User className="w-3.5 h-3.5 text-gray-400" />{" "}
+                {order.snapshot?.buyerName || "—"}
+              </span>
               <span className="text-lg font-bold text-blue-600">
                 {fmt(order.totalAmount)}
               </span>
@@ -266,7 +194,7 @@ function OrderCard({ order, onAction, actionLoadingId }) {
           </div>
         </div>
 
-        {/* Buyer note preview */}
+        {/* Buyer note */}
         {order.buyerNote && (
           <div className="mt-3 flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
             <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-gray-400" />
@@ -274,8 +202,85 @@ function OrderCard({ order, onAction, actionLoadingId }) {
           </div>
         )}
 
+        {/* Cancellation reason */}
+        {order.cancellationReason && (
+          <p className="text-xs text-gray-400 mt-2">
+            Cancelled: {order.cancellationReason}
+          </p>
+        )}
+
         {/* Actions */}
-        <OrderActions order={order} onAction={onAction} loading={isLoading} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {/* Chat button — primary CTA for active orders */}
+          {isActive && (
+            <Link
+              to={`/chat/order/${order._id}`}
+              className="flex-1 min-w-[120px] py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+            >
+              <MessageSquare className="w-4 h-4" /> Open Chat
+            </Link>
+          )}
+
+          {/* Accept / Decline — pending */}
+          {order.status === "requested" && (
+            <>
+              <button
+                onClick={() => onAction(order._id, "accept")}
+                disabled={isLoading}
+                className="py-2.5 px-4 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                Accept
+              </button>
+              <button
+                onClick={() => onAction(order._id, "reject")}
+                disabled={isLoading}
+                className="py-2.5 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <XCircle className="w-4 h-4" /> Decline
+              </button>
+            </>
+          )}
+
+          {/* Mark delivered — accepted */}
+          {order.status === "accepted" && (
+            <>
+              <button
+                onClick={() => onAction(order._id, "deliver")}
+                disabled={isLoading}
+                className="py-2.5 px-4 bg-purple-500 hover:bg-purple-600 disabled:opacity-60 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Truck className="w-4 h-4" />
+                )}
+                Mark Delivered
+              </button>
+              <button
+                onClick={() => onAction(order._id, "cancel")}
+                disabled={isLoading}
+                className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+
+          {/* View chat for completed / terminal */}
+          {!isActive && (
+            <Link
+              to={`/chat/order/${order._id}`}
+              className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" /> View Chat
+            </Link>
+          )}
+        </div>
 
         {/* Expand toggle */}
         <button
@@ -308,13 +313,13 @@ function OrderCard({ order, onAction, actionLoadingId }) {
               <div>
                 <p className="text-xs text-gray-400">Payment</p>
                 <p className="font-medium text-gray-700 capitalize">
-                  {order.paymentMethod.replace("_", " ")}
+                  {order.paymentMethod.replace(/_/g, " ")}
                 </p>
               </div>
             )}
             {order.deliveryAddress && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400">Delivery address</p>
+                <p className="text-xs text-gray-400">Address</p>
                 <p className="font-medium text-gray-700">
                   {order.deliveryAddress}
                 </p>
@@ -322,7 +327,7 @@ function OrderCard({ order, onAction, actionLoadingId }) {
             )}
             {order.meetupLocation && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400">Meetup location</p>
+                <p className="text-xs text-gray-400">Meetup</p>
                 <p className="font-medium text-gray-700">
                   {order.meetupLocation}
                 </p>
@@ -352,11 +357,12 @@ function OrderCard({ order, onAction, actionLoadingId }) {
                 </p>
               </div>
             )}
-            {order.cancellationReason && (
+            {order.review?.rating && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400">Cancellation reason</p>
+                <p className="text-xs text-gray-400">Buyer's review</p>
                 <p className="font-medium text-gray-700">
-                  {order.cancellationReason}
+                  {"⭐".repeat(order.review.rating)}
+                  {order.review.comment ? ` "${order.review.comment}"` : ""}
                 </p>
               </div>
             )}
@@ -369,27 +375,30 @@ function OrderCard({ order, onAction, actionLoadingId }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SellerOrdersPage() {
-  const { token, isHydrating } = useAuth();
-
+  const { token } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [actionLoadingId, setActionLoadingId] = useState(null);
-  const [actionMessage, setActionMessage] = useState(null); // { type, text }
+  const [toast, setToast] = useState(null);
 
-  // ── Fetch orders ────────────────────────────────────────────────────────────
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+
+  const showToast = (type, text) => {
+    setToast({ type, text });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   const fetchOrders = useCallback(async () => {
-    if (isHydrating || !token) return;
-
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/orders/seller`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: authHeaders,
       });
       if (!res.ok) throw new Error("Failed to load orders");
       const data = await res.json();
@@ -398,7 +407,6 @@ export default function SellerOrdersPage() {
         : Array.isArray(data)
           ? data
           : [];
-      // Sort: newest first
       list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setOrders(list);
     } catch (err) {
@@ -406,89 +414,79 @@ export default function SellerOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [isHydrating, token]);
+  }, []);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
 
-  // ── Status actions ──────────────────────────────────────────────────────────
+  // All order mutations go through conversation-based routes so socket events fire
   const handleAction = async (orderId, action) => {
     setActionLoadingId(orderId);
-    setActionMessage(null);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/orders/${orderId}/${action}`,
+        `${API_BASE_URL}/api/conversations/order/${orderId}/${action}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: authHeaders,
         },
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Action failed");
-
-      // Update order in list
       setOrders((prev) =>
         prev.map((o) => (o._id === orderId ? { ...o, ...data.order } : o)),
       );
-
-      const labels = {
+      const msgs = {
         accept: "Order accepted! Chat with the buyer to coordinate.",
         reject: "Order declined.",
         deliver: "Marked as delivered. Waiting for buyer confirmation.",
         cancel: "Order cancelled.",
       };
-      setActionMessage({ type: "success", text: labels[action] || "Done." });
+      showToast("success", msgs[action] || "Done.");
     } catch (err) {
-      setActionMessage({ type: "error", text: err.message });
+      showToast("error", err.message);
     } finally {
       setActionLoadingId(null);
-      setTimeout(() => setActionMessage(null), 4000);
     }
   };
 
-  // ── Computed stats ──────────────────────────────────────────────────────────
   const counts = ALL_STATUSES.reduce((acc, s) => {
     acc[s] = orders.filter((o) => o.status === s).length;
     return acc;
   }, {});
-
-  const pendingCount = counts.requested;
-  const activeCount = counts.accepted + counts.delivered;
-  const completedCount = counts.completed;
   const totalEarned = orders
     .filter((o) => o.status === "completed")
     .reduce((s, o) => s + (o.totalAmount || 0), 0);
-
-  // ── Filter ──────────────────────────────────────────────────────────────────
   const filtered =
     activeFilter === "all"
       ? orders
       : orders.filter((o) => o.status === activeFilter);
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
-                <Store className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">
-                  Seller Dashboard
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Manage requests for your listings
-                </p>
-              </div>
+        <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+              <Store className="w-5 h-5 text-white" />
             </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-800">
+                Seller Dashboard
+              </h1>
+              <p className="text-sm text-gray-500">
+                Manage requests for your listings
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/inbox"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" /> Inbox
+            </Link>
             <button
               onClick={fetchOrders}
               disabled={loading}
@@ -496,7 +494,7 @@ export default function SellerOrdersPage() {
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
+              />{" "}
               Refresh
             </button>
           </div>
@@ -504,42 +502,38 @@ export default function SellerOrdersPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Action message toast */}
-        {actionMessage && (
+        {/* Toast */}
+        {toast && (
           <div
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm ${
-              actionMessage.type === "success"
-                ? "bg-green-50 border border-green-200 text-green-700"
-                : "bg-red-50 border border-red-200 text-red-700"
-            }`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm ${toast.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"}`}
           >
-            {actionMessage.type === "success" ? (
+            {toast.type === "success" ? (
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             ) : (
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             )}
-            {actionMessage.text}
+            {toast.text}
           </div>
         )}
 
-        {/* Stats row */}
+        {/* Stats */}
         {!loading && !error && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard
-              label="Pending Requests"
-              value={pendingCount}
+              label="Pending"
+              value={counts.requested}
               icon={Clock}
               colorClass="bg-amber-100 text-amber-600"
             />
             <StatCard
-              label="Active Orders"
-              value={activeCount}
+              label="Active"
+              value={counts.accepted + counts.delivered}
               icon={Package}
               colorClass="bg-blue-100 text-blue-600"
             />
             <StatCard
               label="Completed"
-              value={completedCount}
+              value={counts.completed}
               icon={Trophy}
               colorClass="bg-green-100 text-green-600"
             />
@@ -558,11 +552,7 @@ export default function SellerOrdersPage() {
             <Filter className="w-4 h-4 text-gray-400 mr-1" />
             <button
               onClick={() => setActiveFilter("all")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                activeFilter === "all"
-                  ? "bg-gray-800 text-white"
-                  : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${activeFilter === "all" ? "bg-gray-800 text-white" : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"}`}
             >
               All ({orders.length})
             </button>
@@ -572,11 +562,7 @@ export default function SellerOrdersPage() {
                 <button
                   key={s}
                   onClick={() => setActiveFilter(s)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    activeFilter === s
-                      ? `${cfg.badge} border-2 ${cfg.border}`
-                      : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${activeFilter === s ? `${cfg.badge} border-2 ${cfg.border}` : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"}`}
                 >
                   {cfg.label} ({counts[s]})
                 </button>
@@ -610,25 +596,23 @@ export default function SellerOrdersPage() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty — no orders */}
         {!loading && !error && orders.length === 0 && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShoppingBagEmpty />
+              <Store className="w-9 h-9 text-gray-300" />
             </div>
             <h2 className="text-xl font-bold text-gray-700 mb-2">
               No orders yet
             </h2>
             <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
-              When buyers request your listings, they'll show up here. Make sure
-              your listings are active!
+              When buyers request your listings, they'll show up here.
             </p>
             <Link
               to="/my-listings"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors text-sm"
             >
-              View My Listings
-              <ArrowUpRight className="w-4 h-4" />
+              View My Listings <ArrowUpRight className="w-4 h-4" />
             </Link>
           </div>
         )}
@@ -642,7 +626,7 @@ export default function SellerOrdersPage() {
           </div>
         )}
 
-        {/* Order cards */}
+        {/* Cards */}
         {!loading && !error && filtered.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filtered.map((order) => (
@@ -657,23 +641,5 @@ export default function SellerOrdersPage() {
         )}
       </div>
     </div>
-  );
-}
-
-// Inline SVG placeholder for empty state
-function ShoppingBagEmpty() {
-  return (
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#9ca3af"
-      strokeWidth="1.5"
-    >
-      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <path d="M16 10a4 4 0 01-8 0" />
-    </svg>
   );
 }

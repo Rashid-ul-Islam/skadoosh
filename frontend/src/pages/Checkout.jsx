@@ -129,7 +129,7 @@ function StatusBanner({ results }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function CheckoutPage() {
-  const { token, isHydrating } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
 
   const [cartItems, setCartItems] = useState([]);
@@ -142,17 +142,17 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState(null); // null = not yet submitted
 
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+
   // ── Load cart ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (isHydrating || !token) return;
-
     async function loadCart() {
       try {
         const res = await fetch(`${API_BASE_URL}/api/cart`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: authHeaders,
         });
         if (!res.ok) throw new Error("Failed to load cart");
         const data = await res.json();
@@ -171,7 +171,7 @@ export default function CheckoutPage() {
       }
     }
     loadCart();
-  }, [isHydrating, token]);
+  }, []);
 
   // ── Form helpers ────────────────────────────────────────────────────────────
   const setField = (itemId, field, value) => {
@@ -214,10 +214,7 @@ export default function CheckoutPage() {
 
         const res = await fetch(`${API_BASE_URL}/api/orders/from-cart`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: authHeaders,
           body: JSON.stringify(body),
         });
 

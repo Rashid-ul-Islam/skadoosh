@@ -21,6 +21,8 @@ import {
   ArrowUpRight,
   Filter,
   ShoppingBag,
+  MapPin,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { API_BASE_URL } from "../config/api.js";
@@ -73,7 +75,7 @@ const STATUS_CONFIG = {
     border: "border-purple-200",
     bg: "bg-purple-50",
     dot: "bg-purple-400",
-    description: "Seller marked as delivered. Please confirm receipt.",
+    description: "Seller marked as delivered — please confirm receipt.",
   },
   completed: {
     label: "Completed",
@@ -121,11 +123,7 @@ function StarRating({ value, onChange }) {
           className="transition-transform hover:scale-110"
         >
           <Star
-            className={`w-6 h-6 ${
-              star <= (hovered || value)
-                ? "fill-amber-400 text-amber-400"
-                : "text-gray-300"
-            }`}
+            className={`w-6 h-6 ${star <= (hovered || value) ? "fill-amber-400 text-amber-400" : "text-gray-300"}`}
           />
         </button>
       ))}
@@ -137,8 +135,6 @@ function StarRating({ value, onChange }) {
 function ReviewModal({ order, onClose, onSubmit, submitting }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
-
-  const canSubmit = rating >= 1 && !submitting;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -155,14 +151,12 @@ function ReviewModal({ order, onClose, onSubmit, submitting }) {
           </span>
           ?
         </p>
-
         <div className="mb-4">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
             Rating
           </label>
           <StarRating value={rating} onChange={setRating} />
         </div>
-
         <div className="mb-6">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             Comment{" "}
@@ -175,10 +169,9 @@ function ReviewModal({ order, onClose, onSubmit, submitting }) {
             placeholder="Share your experience…"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 resize-none placeholder-gray-300"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none placeholder-gray-300"
           />
         </div>
-
         <div className="flex gap-3">
           <button
             onClick={onClose}
@@ -188,8 +181,8 @@ function ReviewModal({ order, onClose, onSubmit, submitting }) {
           </button>
           <button
             onClick={() => onSubmit(order._id, rating, comment)}
-            disabled={!canSubmit}
-            className="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
+            disabled={rating < 1 || submitting}
+            className="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -207,7 +200,6 @@ function ReviewModal({ order, onClose, onSubmit, submitting }) {
 // ── Dispute modal ─────────────────────────────────────────────────────────────
 function DisputeModal({ order, onClose, onSubmit, submitting }) {
   const [reason, setReason] = useState("");
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -217,9 +209,8 @@ function DisputeModal({ order, onClose, onSubmit, submitting }) {
           <span className="font-semibold text-gray-700">
             {order.snapshot?.title}
           </span>
-          . Our team will review it.
+          .
         </p>
-
         <div className="mb-6">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             Reason <span className="text-red-400">*</span>
@@ -229,10 +220,9 @@ function DisputeModal({ order, onClose, onSubmit, submitting }) {
             placeholder="What went wrong? Be as specific as possible…"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 resize-none placeholder-gray-300"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none placeholder-gray-300"
           />
         </div>
-
         <div className="flex gap-3">
           <button
             onClick={onClose}
@@ -243,7 +233,7 @@ function DisputeModal({ order, onClose, onSubmit, submitting }) {
           <button
             onClick={() => onSubmit(order._id, reason)}
             disabled={!reason.trim() || submitting}
-            className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -254,75 +244,6 @@ function DisputeModal({ order, onClose, onSubmit, submitting }) {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── Buyer action buttons ──────────────────────────────────────────────────────
-function BuyerActions({
-  order,
-  onCancel,
-  onComplete,
-  onDispute,
-  onReview,
-  loadingId,
-}) {
-  const loading = loadingId === order._id;
-  const { status } = order;
-
-  return (
-    <div className="flex flex-wrap gap-2 mt-4">
-      {/* Cancel — while still pending */}
-      {status === "requested" && (
-        <button
-          onClick={() => onCancel(order)}
-          disabled={loading}
-          className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Ban className="w-4 h-4" />
-          )}
-          Cancel Request
-        </button>
-      )}
-
-      {/* Confirm receipt — after seller marks delivered */}
-      {status === "delivered" && (
-        <>
-          <button
-            onClick={() => onComplete(order._id)}
-            disabled={loading}
-            className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4" />
-            )}
-            Confirm Receipt
-          </button>
-          <button
-            onClick={() => onDispute(order)}
-            disabled={loading}
-            className="py-2.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
-          >
-            Problem?
-          </button>
-        </>
-      )}
-
-      {/* Review — completed, not yet reviewed */}
-      {status === "completed" && !order.review?.submittedAt && (
-        <button
-          onClick={() => onReview(order)}
-          className="flex-1 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
-        >
-          <Star className="w-4 h-4" />
-          Leave a Review
-        </button>
-      )}
     </div>
   );
 }
@@ -343,17 +264,14 @@ function StatCard({ label, value, icon: Icon, colorClass }) {
 }
 
 // ── Single order card ─────────────────────────────────────────────────────────
-function OrderCard({
-  order,
-  onCancel,
-  onComplete,
-  onDispute,
-  onReview,
-  actionLoadingId,
-}) {
+function OrderCard({ order, onDispute, onReview, onAction, actionLoadingId }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.requested;
   const Icon = cfg.icon;
+  const isLoading = actionLoadingId === order._id;
+  const isActive = ["requested", "accepted", "delivered"].includes(
+    order.status,
+  );
 
   return (
     <div
@@ -377,7 +295,6 @@ function OrderCard({
         </span>
       </div>
 
-      {/* Body */}
       <div className="p-5">
         <div className="flex gap-4">
           {/* Thumbnail */}
@@ -395,12 +312,10 @@ function OrderCard({
             )}
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-gray-800 leading-tight truncate mb-1">
-              {order.snapshot?.title || "Untitled listing"}
+              {order.snapshot?.title || "Untitled"}
             </h3>
-
             <div className="flex flex-wrap gap-1.5 mb-2">
               {order.snapshot?.listingType === "rent" ? (
                 <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
@@ -418,15 +333,11 @@ function OrderCard({
                 </span>
               )}
             </div>
-
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Store className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-xs text-gray-500">Seller:</span>
-                <span className="text-sm font-semibold text-gray-700">
-                  {order.snapshot?.sellerName || "—"}
-                </span>
-              </div>
+                {order.snapshot?.sellerName || "—"}
+              </span>
               <span className="text-lg font-bold text-blue-600">
                 {fmt(order.totalAmount)}
               </span>
@@ -439,17 +350,6 @@ function OrderCard({
           <Icon className="w-3.5 h-3.5 flex-shrink-0" />
           {cfg.description}
         </p>
-
-        {/* Seller note */}
-        {order.sellerNote && (
-          <div className="mt-3 flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-            <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-gray-400" />
-            <div>
-              <span className="font-semibold text-gray-600">Seller: </span>
-              {order.sellerNote}
-            </div>
-          </div>
-        )}
 
         {/* Existing review */}
         {order.review?.submittedAt && (
@@ -469,15 +369,86 @@ function OrderCard({
           </div>
         )}
 
-        {/* Actions */}
-        <BuyerActions
-          order={order}
-          onCancel={onCancel}
-          onComplete={onComplete}
-          onDispute={onDispute}
-          onReview={onReview}
-          loadingId={actionLoadingId}
-        />
+        {/* Cancellation / dispute note */}
+        {order.cancellationReason && (
+          <p className="text-xs text-gray-400 mt-2">
+            Reason: {order.cancellationReason}
+          </p>
+        )}
+
+        {/* Actions row */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {/* Chat button — always visible for active orders */}
+          {isActive && (
+            <Link
+              to={`/chat/order/${order._id}`}
+              className="flex-1 min-w-[120px] py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+            >
+              <MessageSquare className="w-4 h-4" /> Open Chat
+            </Link>
+          )}
+
+          {/* Cancel — pending */}
+          {order.status === "requested" && (
+            <button
+              onClick={() => onAction(order._id, "cancel")}
+              disabled={isLoading}
+              className="py-2.5 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Ban className="w-4 h-4" />
+              )}
+              Cancel
+            </button>
+          )}
+
+          {/* Confirm receipt — delivered */}
+          {order.status === "delivered" && (
+            <>
+              <button
+                onClick={() => onAction(order._id, "complete")}
+                disabled={isLoading}
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                Confirm Receipt
+              </button>
+              <button
+                onClick={() => onDispute(order)}
+                disabled={isLoading}
+                className="py-2.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 rounded-xl text-sm font-semibold disabled:opacity-50"
+              >
+                Problem?
+              </button>
+            </>
+          )}
+
+          {/* Review — completed, no review yet */}
+          {order.status === "completed" && !order.review?.submittedAt && (
+            <button
+              onClick={() => onReview(order)}
+              className="flex-1 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5"
+            >
+              <Star className="w-4 h-4" /> Leave a Review
+            </button>
+          )}
+
+          {/* View chat for non-active (read-only) */}
+          {!isActive && (
+            <Link
+              to={`/chat/order/${order._id}`}
+              className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" /> View Chat
+            </Link>
+          )}
+        </div>
 
         {/* Expand toggle */}
         <button
@@ -516,7 +487,7 @@ function OrderCard({
             )}
             {order.deliveryAddress && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400">Delivery address</p>
+                <p className="text-xs text-gray-400">Address</p>
                 <p className="font-medium text-gray-700">
                   {order.deliveryAddress}
                 </p>
@@ -524,7 +495,7 @@ function OrderCard({
             )}
             {order.meetupLocation && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400">Meetup location</p>
+                <p className="text-xs text-gray-400">Meetup</p>
                 <p className="font-medium text-gray-700">
                   {order.meetupLocation}
                 </p>
@@ -552,14 +523,6 @@ function OrderCard({
                 <p className="font-medium text-gray-700">{order.buyerNote}</p>
               </div>
             )}
-            {order.cancellationReason && (
-              <div className="col-span-2">
-                <p className="text-xs text-gray-400">Cancellation reason</p>
-                <p className="font-medium text-gray-700">
-                  {order.cancellationReason}
-                </p>
-              </div>
-            )}
             {order.disputeReason && (
               <div className="col-span-2">
                 <p className="text-xs text-gray-400">Dispute reason</p>
@@ -577,38 +540,34 @@ function OrderCard({
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function BuyerOrdersPage() {
-  const { token, isHydrating } = useAuth();
-
+  const { token } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [actionLoadingId, setActionLoadingId] = useState(null);
-  const [toast, setToast] = useState(null); // { type: 'success'|'error', text }
-
-  // Modals
+  const [toast, setToast] = useState(null);
   const [reviewTarget, setReviewTarget] = useState(null);
   const [disputeTarget, setDisputeTarget] = useState(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
 
   const showToast = (type, text) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 4000);
   };
 
-  // ── Fetch ───────────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async () => {
-    if (isHydrating || !token) return;
-
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/orders/buyer`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: authHeaders,
       });
       if (!res.ok) throw new Error("Failed to load orders");
       const data = await res.json();
@@ -624,52 +583,35 @@ export default function BuyerOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [isHydrating, token]);
+  }, []);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
 
-  // ── Actions ─────────────────────────────────────────────────────────────────
-  const patchOrder = async (orderId, action, body = {}) => {
-    const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/${action}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Action failed");
-    return data.order;
-  };
-
-  const updateOrderInList = (updated) => {
-    setOrders((prev) =>
-      prev.map((o) => (o._id === updated._id ? { ...o, ...updated } : o)),
-    );
-  };
-
-  const handleCancel = async (order) => {
-    setActionLoadingId(order._id);
-    try {
-      const updated = await patchOrder(order._id, "cancel");
-      updateOrderInList(updated);
-      showToast("success", "Order cancelled.");
-    } catch (err) {
-      showToast("error", err.message);
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleComplete = async (orderId) => {
+  // Generic action — uses conversation-based endpoints so socket events fire
+  const handleAction = async (orderId, action, body = {}) => {
     setActionLoadingId(orderId);
     try {
-      const updated = await patchOrder(orderId, "complete");
-      updateOrderInList(updated);
-      showToast("success", "Receipt confirmed! Order completed.");
+      const res = await fetch(
+        `${API_BASE_URL}/api/conversations/order/${orderId}/${action}`,
+        {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify(body),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Action failed");
+      setOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, ...data.order } : o)),
+      );
+      const msgs = {
+        complete: "Receipt confirmed! Order completed.",
+        cancel: "Order cancelled.",
+        dispute: "Dispute opened.",
+      };
+      showToast("success", msgs[action] || "Done.");
     } catch (err) {
       showToast("error", err.message);
     } finally {
@@ -680,14 +622,16 @@ export default function BuyerOrdersPage() {
   const handleReviewSubmit = async (orderId, rating, comment) => {
     setReviewSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/review`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({ rating, comment }),
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/api/conversations/order/${orderId}/review`,
+        {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({ rating, comment }),
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to submit review");
-      // Patch review into the local order
       setOrders((prev) =>
         prev.map((o) =>
           o._id === orderId ? { ...o, review: data.review } : o,
@@ -705,8 +649,19 @@ export default function BuyerOrdersPage() {
   const handleDisputeSubmit = async (orderId, reason) => {
     setDisputeSubmitting(true);
     try {
-      const updated = await patchOrder(orderId, "dispute", { reason });
-      updateOrderInList(updated);
+      const res = await fetch(
+        `${API_BASE_URL}/api/conversations/order/${orderId}/dispute`,
+        {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify({ reason }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, ...data.order } : o)),
+      );
       setDisputeTarget(null);
       showToast("success", "Dispute opened. Our team will review it.");
     } catch (err) {
@@ -716,21 +671,17 @@ export default function BuyerOrdersPage() {
     }
   };
 
-  // ── Computed stats ──────────────────────────────────────────────────────────
   const counts = ALL_STATUSES.reduce((acc, s) => {
     acc[s] = orders.filter((o) => o.status === s).length;
     return acc;
   }, {});
-
   const filtered =
     activeFilter === "all"
       ? orders
       : orders.filter((o) => o.status === activeFilter);
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Modals */}
       {reviewTarget && (
         <ReviewModal
           order={reviewTarget}
@@ -750,19 +701,25 @@ export default function BuyerOrdersPage() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
-                <ShoppingBag className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">My Orders</h1>
-                <p className="text-sm text-gray-500">
-                  Track all your purchase requests
-                </p>
-              </div>
+        <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+              <ShoppingBag className="w-5 h-5 text-white" />
             </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-800">My Orders</h1>
+              <p className="text-sm text-gray-500">
+                Track all your purchase requests
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/inbox"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" /> Inbox
+            </Link>
             <button
               onClick={fetchOrders}
               disabled={loading}
@@ -770,7 +727,7 @@ export default function BuyerOrdersPage() {
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
+              />{" "}
               Refresh
             </button>
           </div>
@@ -781,11 +738,7 @@ export default function BuyerOrdersPage() {
         {/* Toast */}
         {toast && (
           <div
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm ${
-              toast.type === "success"
-                ? "bg-green-50 border border-green-200 text-green-700"
-                : "bg-red-50 border border-red-200 text-red-700"
-            }`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm ${toast.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"}`}
           >
             {toast.type === "success" ? (
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
@@ -818,7 +771,7 @@ export default function BuyerOrdersPage() {
               colorClass="bg-green-100 text-green-600"
             />
             <StatCard
-              label="Total Orders"
+              label="Total"
               value={orders.length}
               icon={ShoppingBag}
               colorClass="bg-purple-100 text-purple-600"
@@ -832,11 +785,7 @@ export default function BuyerOrdersPage() {
             <Filter className="w-4 h-4 text-gray-400 mr-1" />
             <button
               onClick={() => setActiveFilter("all")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                activeFilter === "all"
-                  ? "bg-gray-800 text-white"
-                  : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${activeFilter === "all" ? "bg-gray-800 text-white" : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"}`}
             >
               All ({orders.length})
             </button>
@@ -846,11 +795,7 @@ export default function BuyerOrdersPage() {
                 <button
                   key={s}
                   onClick={() => setActiveFilter(s)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    activeFilter === s
-                      ? `${cfg.badge} border-2 ${cfg.border}`
-                      : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${activeFilter === s ? `${cfg.badge} border-2 ${cfg.border}` : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300"}`}
                 >
                   {cfg.label} ({counts[s]})
                 </button>
@@ -884,7 +829,7 @@ export default function BuyerOrdersPage() {
           </div>
         )}
 
-        {/* Empty */}
+        {/* Empty — no orders */}
         {!loading && !error && orders.length === 0 && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -894,15 +839,13 @@ export default function BuyerOrdersPage() {
               No orders yet
             </h2>
             <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
-              When you request an item from a seller, it'll show up here so you
-              can track it.
+              When you request an item from a seller, it'll show up here.
             </p>
             <Link
               to="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors text-sm"
             >
-              Browse Listings
-              <ArrowUpRight className="w-4 h-4" />
+              Browse Listings <ArrowUpRight className="w-4 h-4" />
             </Link>
           </div>
         )}
@@ -923,8 +866,7 @@ export default function BuyerOrdersPage() {
               <OrderCard
                 key={order._id}
                 order={order}
-                onCancel={handleCancel}
-                onComplete={handleComplete}
+                onAction={handleAction}
                 onDispute={setDisputeTarget}
                 onReview={setReviewTarget}
                 actionLoadingId={actionLoadingId}
