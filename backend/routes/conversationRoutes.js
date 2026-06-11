@@ -1,4 +1,5 @@
 import express from "express";
+import { protect } from "../middleware/authMiddleware.js";
 import {
     getInbox,
     getConversation,
@@ -15,6 +16,7 @@ import {
 } from "../controllers/conversationController.js";
 
 const router = express.Router();
+router.use(protect);
 
 // ── Inbox & unread ────────────────────────────────────────────────────────────
 // GET  /api/conversations              → inbox list

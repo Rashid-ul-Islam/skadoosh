@@ -3,6 +3,7 @@ import Order from "../models/order.js";
 import Listing from "../models/listing.js";
 import Cart from "../models/cart.js";
 import User from "../models/user.js";
+import { initConversation } from "./conversationController.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,25 @@ export async function createOrder(req, res) {
             });
         }
 
+        // ── Validate requested quantity against available stock ───────────────
+        // Available = listing.quantity minus units already locked in accepted orders.
+        // We count accepted orders only — requested orders don't lock stock yet,
+        // multiple buyers can request; seller picks who to accept.
+        const acceptedAgg = await Order.aggregate([
+            { $match: { listing: listing._id, status: "accepted" } },
+            { $group: { _id: null, total: { $sum: "$quantity" } } },
+        ]);
+        const lockedQty = acceptedAgg[0]?.total || 0;
+        const availableQty = listing.quantity - lockedQty;
+
+        if (quantity > availableQty) {
+            await session.abortTransaction();
+            return res.status(409).json({
+                error: `Only ${availableQty} unit(s) available for this listing.`,
+                available: availableQty,
+            });
+        }
+
         // ── Build price snapshot ──────────────────────────────────────────────
         let agreedPrice, totalAmount;
         if (listing.listingType === "rent") {
@@ -150,11 +170,19 @@ export async function createOrder(req, res) {
 
         await order.save({ session });
 
-        // NOTE: We do NOT modify listing.status here.
-        // Inventory stays "active" until the seller accepts.
-        // This matches your spec: "Inventory remains unchanged."
+        // Inventory is NOT modified at request time.
+        // Stock is only deducted when the seller accepts (in acceptOrder).
+        // This lets multiple buyers request simultaneously; the seller decides.
 
         await session.commitTransaction();
+
+        // ── Auto-create conversation thread ──────────────────────────────────
+        try {
+            await initConversation(order._id);
+        } catch (convErr) {
+            // Non-fatal: order is saved; log and continue
+            console.error("initConversation error:", convErr);
+        }
 
         // Populate for response
         await order.populate("buyer", "firstName lastName email phoneNumber");
@@ -240,6 +268,23 @@ export async function createOrderFromCart(req, res) {
             });
         }
 
+        // ── Validate quantity against available stock ─────────────────────────
+        const cartQty = cartItem.quantity;
+        const acceptedAgg2 = await Order.aggregate([
+            { $match: { listing: listing._id, status: "accepted" } },
+            { $group: { _id: null, total: { $sum: "$quantity" } } },
+        ]);
+        const lockedQty2 = acceptedAgg2[0]?.total || 0;
+        const availableQty2 = listing.quantity - lockedQty2;
+
+        if (cartQty > availableQty2) {
+            await session.abortTransaction();
+            return res.status(409).json({
+                error: `Only ${availableQty2} unit(s) available. Update your cart quantity and try again.`,
+                available: availableQty2,
+            });
+        }
+
         const buyer = await User.findById(req.user._id).session(session);
 
         // ── Compute totals from cart item ─────────────────────────────────────
@@ -289,6 +334,11 @@ export async function createOrderFromCart(req, res) {
         await cart.save({ session });
 
         await session.commitTransaction();
+        try {
+            await initConversation(order._id);
+        } catch (convErr) {
+            console.error("initConversation error:", convErr);
+        }
 
         await order.populate("buyer", "firstName lastName email phoneNumber");
         await order.populate("seller", "firstName lastName email phoneNumber");
@@ -427,29 +477,40 @@ export async function acceptOrder(req, res) {
         if (req.body.sellerNote) order.sellerNote = req.body.sellerNote;
         await order.save({ session });
 
-        // ── Reserve the listing ───────────────────────────────────────────────
-        await Listing.findByIdAndUpdate(
+        // ── Deduct stock and conditionally reserve the listing ─────────────────
+        // Decrement listing.quantity by the ordered quantity.
+        // If stock reaches 0 → mark listing "reserved" (no more requests allowed).
+        // If stock remains > 0 → listing stays "active" (other buyers can still request).
+        const updatedListing = await Listing.findByIdAndUpdate(
             order.listing,
-            { status: "reserved" },
-            { session }
+            { $inc: { quantity: -order.quantity } },
+            { new: true, session }
         );
 
-        // ── Auto-reject any other pending requests for the same listing ────────
-        const otherOrders = await Order.find({
-            listing: order.listing,
-            _id: { $ne: order._id },
-            status: "requested",
-        }).session(session);
+        if (updatedListing.quantity <= 0) {
+            updatedListing.quantity = 0; // clamp — never go negative
+            updatedListing.status = "reserved";
+            await updatedListing.save({ session });
 
-        for (const other of otherOrders) {
-            applyStatusChange(
-                other,
-                "rejected",
-                req.user._id,
-                "Seller accepted another buyer's request."
-            );
-            await other.save({ session });
+            // Stock exhausted → auto-reject all other pending requests
+            const otherOrders = await Order.find({
+                listing: order.listing,
+                _id: { $ne: order._id },
+                status: "requested",
+            }).session(session);
+
+            for (const other of otherOrders) {
+                applyStatusChange(
+                    other,
+                    "rejected",
+                    req.user._id,
+                    "No stock remaining — seller accepted another request."
+                );
+                await other.save({ session });
+            }
         }
+        // If stock > 0 the listing remains "active"; other buyers' pending requests
+        // are still valid and the seller can accept more of them.
 
         await session.commitTransaction();
 
@@ -538,14 +599,25 @@ export async function cancelOrder(req, res) {
         order.cancellationReason = req.body.reason || "";
         await order.save({ session });
 
-        // If listing was reserved (order was accepted), revert it to active
+        // ── Restore stock if the order had already been accepted ──────────────
+        // When accepted, stock was decremented. On cancellation we give it back.
+        // After restoring, if the listing was "reserved" (stock was 0) and now
+        // has stock again, revert it to "active" so new buyers can request it.
         if (wasAccepted) {
-            await Listing.findByIdAndUpdate(
+            const restoredListing = await Listing.findByIdAndUpdate(
                 order.listing,
-                { status: "active" },
-                { session }
+                { $inc: { quantity: order.quantity } },
+                { new: true, session }
             );
+
+            // Only re-activate if listing was reserved (not sold/rented/archived)
+            if (restoredListing.status === "reserved" && restoredListing.quantity > 0) {
+                restoredListing.status = "active";
+                await restoredListing.save({ session });
+            }
         }
+        // If order was only "requested" (never accepted), stock was never touched
+        // so nothing to restore.
 
         await session.commitTransaction();
 
@@ -615,13 +687,16 @@ export async function completeOrder(req, res) {
         applyStatusChange(order, "completed", req.user._id, "Buyer confirmed receipt.");
         await order.save({ session });
 
-        // Mark the listing as sold or rented (permanently off market)
-        const finalStatus = order.snapshot.listingType === "rent" ? "rented" : "sold";
-        await Listing.findByIdAndUpdate(
-            order.listing,
-            { status: finalStatus },
-            { session }
-        );
+        // ── Mark listing sold/rented only when all stock is gone ──────────────
+        // Stock was already decremented at accept time.
+        // If quantity is now 0 (reserved), permanently close the listing.
+        // If quantity > 0, leave it active — seller still has units to sell.
+        const listingAfterComplete = await Listing.findById(order.listing).session(session);
+        if (listingAfterComplete && listingAfterComplete.quantity <= 0) {
+            const finalStatus = order.snapshot.listingType === "rent" ? "rented" : "sold";
+            listingAfterComplete.status = finalStatus;
+            await listingAfterComplete.save({ session });
+        }
 
         await session.commitTransaction();
 

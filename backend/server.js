@@ -15,7 +15,7 @@ import listingRoutes from "./routes/listingRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
-import {initSocket} from "./socket/index.js";
+import { initSocket } from "./socket/index.js";
 
 
 // ── DNS override (keep your original setting) ──────────────────────────────────
@@ -71,7 +71,7 @@ if (process.env.NODE_ENV !== "test") {
 app.use(
     rateLimit({
         windowMs: 15 * 60 * 1000,
-        max: 200,
+        max: 2000,
         message: { error: "Too many requests from this IP, please try again later." },
         standardHeaders: true,
         legacyHeaders: false,
@@ -115,6 +115,6 @@ app.use((err, _req, res, _next) => {
 const PORT = process.env.PORT || 5000;
 
 await pool(); // connect to MongoDB first
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || "development"}]`);
 });

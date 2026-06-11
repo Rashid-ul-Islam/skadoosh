@@ -1,4 +1,4 @@
-import {React, useEffect} from "react";
+import { useEffect } from "react";
 import Homepage from "./pages/Homepage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -11,11 +11,12 @@ import SellPage from "./pages/SellPage.jsx";
 import ListingPage from "./pages/ListingPage.jsx";
 import Wishlist from "./pages/Wishlist.jsx";
 import Checkout from "./pages/Checkout.jsx";
-import Orders from "./pages/SellerOrderPage.jsx"
-import MyOrders from "./pages/BuyerOrderPage.jsx"
+import Orders from "./pages/SellerOrderPage.jsx";
+import MyOrders from "./pages/BuyerOrderPage.jsx";
 import { Navigate, useLocation } from "react-router-dom";
 import OrderChatPage from "./pages/OrderChatPage.jsx";
 import InboxPage from "./pages/InboxPage.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -27,12 +28,6 @@ function ScrollToTop() {
   return null;
 }
 
-import { useAuth } from "./context/AuthContext.jsx";
-
-function ProtectedRoute({ children }) {
-  const { token } = useAuth();
-  return token ? children : <Navigate to="/login" replace />;
-}
 
 export default function App() {
   return (
@@ -55,17 +50,12 @@ export default function App() {
           <Route
             path="/chat/order/:orderId"
             element={
-              <ProtectedRoute>
-                <OrderChatPage />
-              </ProtectedRoute>
-            }
+                <OrderChatPage />            }
           />
           <Route
             path="/inbox"
             element={
-              <ProtectedRoute>
                 <InboxPage />
-              </ProtectedRoute>
             }
           />
         </Routes>

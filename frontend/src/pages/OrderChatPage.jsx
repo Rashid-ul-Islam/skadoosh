@@ -758,9 +758,27 @@ export default function OrderChatPage() {
     socket.on("new_message", ({ message }) => {
       setConversation((prev) => {
         if (!prev) return prev;
-        // Deduplicate
-        const exists = prev.messages.some((m) => m._id === message._id);
-        if (exists) return prev;
+        // Deduplicate by persisted ID.
+        if (prev.messages.some((m) => m._id === message._id)) return prev;
+
+        // If a pending optimistic message matches the incoming one, replace it.
+        const pendingMatch = prev.messages.find(
+          (m) =>
+            m._id?.startsWith("temp-") &&
+            m.text === message.text &&
+            (m.sender?._id?.toString() || m.sender?.toString()) ===
+              user?._id?.toString(),
+        );
+
+        if (pendingMatch) {
+          return {
+            ...prev,
+            messages: prev.messages.map((m) =>
+              m._id === pendingMatch._id ? message : m,
+            ),
+          };
+        }
+
         return { ...prev, messages: [...prev.messages, message] };
       });
     });
@@ -781,7 +799,7 @@ export default function OrderChatPage() {
       socket.emit("leave_order", { orderId });
       socket.disconnect();
     };
-  }, [token, orderId]);
+  }, [token, orderId, user]);
 
   // ── Typing indicator ────────────────────────────────────────────────────────
   const handleInputChange = (e) => {
@@ -832,12 +850,24 @@ export default function OrderChatPage() {
       if (!res.ok) throw new Error(data.error || "Failed to send.");
 
       // Replace temp with real message
-      setConversation((prev) => ({
-        ...prev,
-        messages: prev.messages.map((m) =>
-          m._id === tempId ? data.message : m,
-        ),
-      }));
+      setConversation((prev) => {
+        if (!prev) return prev;
+        const alreadyHasMessage = prev.messages.some(
+          (m) => m._id === data.message._id,
+        );
+        if (alreadyHasMessage) {
+          return {
+            ...prev,
+            messages: prev.messages.filter((m) => m._id !== tempId),
+          };
+        }
+        return {
+          ...prev,
+          messages: prev.messages.map((m) =>
+            m._id === tempId ? data.message : m,
+          ),
+        };
+      });
     } catch (err) {
       // Remove temp message on failure
       setConversation((prev) => ({

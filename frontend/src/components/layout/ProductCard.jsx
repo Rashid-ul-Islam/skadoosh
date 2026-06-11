@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../../config/api";
 import { useAuth } from "../../context/AuthContext.jsx";
 import LoginModal from "../auth/LoginModal.jsx";
+import { useNotification } from "../hooks/useNotification.js";
+import Notification from "../common/Notification.jsx";
 
 /**
  * ProductCard — works with both the Listing schema shape (from API) and the
@@ -28,6 +30,7 @@ const ProductCard = ({
 }) => {
   const navigate = useNavigate();
   const { user, token, isLoggedIn, updateUser } = useAuth();
+  const { notification, showError, hideNotification } = useNotification();
 
   // Support both Listing schema (_id) and legacy shape (product_id / id)
   const productId = product?._id || product?.product_id || product?.id;
@@ -117,7 +120,8 @@ const ProductCard = ({
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        console.error("addToCart error:", data.error);
+        const errorMsg = data.error || "Failed to add item to cart.";
+        showError("Error", errorMsg);
         return;
       }
 
@@ -127,6 +131,7 @@ const ProductCard = ({
       setQuantity(0);
     } catch (error) {
       console.error("performAddToCart error:", error);
+      showError("Error", error?.message || "Failed to add item to cart.");
     } finally {
       setIsLoading(false);
     }
@@ -369,6 +374,19 @@ const ProductCard = ({
             onClose={() => setIsLoginModalOpen(false)}
             onLoginSuccess={handleLoginSuccess}
             currentPath={`/product/${productId}`}
+          />,
+          document.body,
+        )}
+
+      {/* Notification — portalled to body */}
+      {notification.show &&
+        createPortal(
+          <Notification
+            show={notification.show}
+            type={notification.type}
+            title={notification.title}
+            message={notification.message}
+            onClose={hideNotification}
           />,
           document.body,
         )}

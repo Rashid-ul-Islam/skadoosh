@@ -34,7 +34,9 @@ export function initSocket(httpServer) {
 
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            socket.user = decoded; // { _id, firstName, lastName, ... }
+            // Normalize to include `_id` so downstream code can use either
+            // `decoded.id` (from auth tokens) or `decoded._id` interchangeably.
+            socket.user = { ...decoded, _id: decoded.id ?? decoded._id };
             next();
         } catch {
             next(new Error("Invalid token."));
@@ -43,7 +45,13 @@ export function initSocket(httpServer) {
 
     // ── Connection handler ────────────────────────────────────────────────────
     io.on("connection", (socket) => {
-        const userId = socket.user._id.toString();
+        const rawUserId = socket.user?.id ?? socket.user?._id ?? socket.user;
+        if (!rawUserId) {
+            socket.emit("error", { message: "Authentication failed." });
+            socket.disconnect(true);
+            return;
+        }
+        const userId = rawUserId.toString();
 
         // Join a personal room so we can push targeted notifications
         socket.join(`user:${userId}`);

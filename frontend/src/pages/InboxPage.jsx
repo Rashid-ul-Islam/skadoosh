@@ -406,7 +406,7 @@ export default function InboxPage() {
                 <ShoppingBag className="w-4 h-4" /> Browse Listings
               </Link>
               <Link
-                to="/seller/orders"
+                to="/orders"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors text-sm"
               >
                 <Store className="w-4 h-4" /> Seller Dashboard

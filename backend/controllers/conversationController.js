@@ -116,15 +116,28 @@ export async function getConversation(req, res) {
         const { orderId } = req.params;
         const userId = req.user._id.toString();
 
-        const convo = await Conversation.findOne({ order: orderId })
+        let convo = await Conversation.findOne({ order: orderId })
             .populate("buyer", "firstName lastName")
             .populate("seller", "firstName lastName")
             .populate("order");
 
-        if (!convo) return res.status(404).json({ error: "Conversation not found." });
+        // If conversation doesn't exist yet, try to initialize it from the order.
+        if (!convo) {
+            try {
+                convo = await initConversation(orderId);
+                // Re-populate the newly created conversation for consistency
+                convo = await Conversation.findById(convo._id)
+                    .populate("buyer", "firstName lastName")
+                    .populate("seller", "firstName lastName")
+                    .populate("order");
+            } catch (initErr) {
+                console.error("getConversation init error:", initErr);
+                return res.status(404).json({ error: "Conversation not found." });
+            }
+        }
 
-        const isBuyer = convo.buyer._id.toString() === userId;
-        const isSeller = convo.seller._id.toString() === userId;
+        const isBuyer = convo.buyer?._id?.toString() === userId;
+        const isSeller = convo.seller?._id?.toString() === userId;
         if (!isBuyer && !isSeller) return res.status(403).json({ error: "Access denied." });
 
         // Mark messages as read
