@@ -13,6 +13,7 @@ import authRoutes from "./routes/authRoutes.js";
 import listingRoutes from "./routes/listingRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
 
 
 // ── DNS override (keep your original setting) ──────────────────────────────────
@@ -80,6 +81,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/conversations", conversationRoutes);
 // Serve uploaded images as static files
 app.use("/uploads", express.static("uploads"));
 
