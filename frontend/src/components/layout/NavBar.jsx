@@ -9,76 +9,6 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { API_BASE_URL } from "../../config/api.js";
 import { Tag } from "lucide-react";
 
-// Product catalog used for quick search
-const MOCK_PRODUCTS = [
-  {
-    id: 1,
-    name: "Fresh Tomatoes",
-    price: "45.00",
-    category_name: "Vegetables",
-    image_url: "https://placehold.co/48x48?text=🍅",
-  },
-  {
-    id: 2,
-    name: "Basmati Rice (5 kg)",
-    price: "320.00",
-    category_name: "Grains",
-    image_url: "https://placehold.co/48x48?text=🌾",
-  },
-  {
-    id: 3,
-    name: "Organic Eggs (12 pc)",
-    price: "135.00",
-    category_name: "Dairy",
-    image_url: "https://placehold.co/48x48?text=🥚",
-  },
-  {
-    id: 4,
-    name: "Sunflower Oil (1 L)",
-    price: "195.00",
-    category_name: "Oils",
-    image_url: "https://placehold.co/48x48?text=🫙",
-  },
-  {
-    id: 5,
-    name: "Green Chili",
-    price: "30.00",
-    category_name: "Vegetables",
-    image_url: "https://placehold.co/48x48?text=🌶️",
-  },
-  {
-    id: 6,
-    name: "Lentil (Masoor Dal)",
-    price: "110.00",
-    category_name: "Pulses",
-    image_url: "https://placehold.co/48x48?text=🫘",
-  },
-  {
-    id: 7,
-    name: "Chicken Breast",
-    price: "280.00",
-    category_name: "Meat",
-    image_url: "https://placehold.co/48x48?text=🍗",
-  },
-  {
-    id: 8,
-    name: "Mango (Fazlee)",
-    price: "90.00",
-    category_name: "Fruits",
-    image_url: "https://placehold.co/48x48?text=🥭",
-  },
-];
-
-function mockQuickSearch(query) {
-  const q = query.toLowerCase().trim();
-  if (!q) return [];
-  return MOCK_PRODUCTS.filter(
-    (p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.category_name.toLowerCase().includes(q),
-  ).slice(0, 5);
-}
-
 // ---------------------------------------------------------------------------
 // NavBar
 // ---------------------------------------------------------------------------
@@ -136,18 +66,25 @@ export default function NavBar() {
   }, []);
 
   // ── Search helpers ──────────────────────────────────────────────────────────
-  const runSearch = (query) => {
+  const runSearch = async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
       setShowResults(false);
       return;
     }
     setSearchLoading(true);
-    setTimeout(() => {
-      setSearchResults(mockQuickSearch(query));
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/listings/search?q=${encodeURIComponent(query)}&limit=5`,
+      );
+      const data = await res.json();
+      setSearchResults(data.listings || []);
       setShowResults(true);
+    } catch {
+      setSearchResults([]);
+    } finally {
       setSearchLoading(false);
-    }, 200);
+    }
   };
 
   const handleSearchInput = (e) => {
