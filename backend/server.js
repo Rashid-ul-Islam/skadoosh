@@ -29,7 +29,6 @@ app.use(
         crossOriginResourcePolicy: false, // adjust when you add a frontend SSR layer
     })
 );
-
 // ── CORS ───────────────────────────────────────────────────────────────────────
 const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 const originSources = process.env.ALLOWED_ORIGINS || clientUrl;

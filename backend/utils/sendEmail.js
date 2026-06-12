@@ -1,44 +1,53 @@
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const createResendClient = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing RESEND_API_KEY environment variable");
+  }
+  return new Resend(apiKey);
+};
 
 /**
  * Creates a reusable Nodemailer transporter.
  * Uses Gmail OAuth2 or a plain SMTP service depending on env vars.
  * For development, falls back to Ethereal (a fake SMTP that captures emails).
  */
-const createTransporter = async () => {
-  console.log("SMTP_HOST INSIDE EMAIL FILE:", process.env.SMTP_HOST);
+// const createTransporter = async () => {
+//   console.log("SMTP_HOST INSIDE EMAIL FILE:", process.env.SMTP_HOST);
 
-  if (process.env.SMTP_HOST) {
-    console.log("USING GMAIL SMTP");
+//   if (process.env.SMTP_HOST) {
+//     console.log("USING GMAIL SMTP");
 
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT, 10) || 587,
-      secure: process.env.SMTP_SECURE === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
+//     return nodemailer.createTransport({
+//       host: process.env.SMTP_HOST,
+//       port: parseInt(process.env.SMTP_PORT, 10) || 587,
+//       secure: process.env.SMTP_SECURE === "true",
+//       auth: {
+//         user: process.env.SMTP_USER,
+//         pass: process.env.SMTP_PASS,
+//       },
+//     });
+//   }
 
-  console.log("USING ETHEREAL");
+//   console.log("USING ETHEREAL");
 
 
-  // ── Development fallback: Ethereal fake SMTP ──────────────────────────────
-  // Emails are captured at https://ethereal.email — nothing is actually sent.
-  // The preview URL is logged to the console.
-  const testAccount = await nodemailer.createTestAccount();
-  return nodemailer.createTransport({
-    host: "smtp.ethereal.email",
-    port: 587,
-    secure: false,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
-};
+//   // ── Development fallback: Ethereal fake SMTP ──────────────────────────────
+//   // Emails are captured at https://ethereal.email — nothing is actually sent.
+//   // The preview URL is logged to the console.
+//   const testAccount = await nodemailer.createTestAccount();
+//   return nodemailer.createTransport({
+//     host: "smtp.ethereal.email",
+//     port: 587,
+//     secure: false,
+//     auth: {
+//       user: testAccount.user,
+//       pass: testAccount.pass,
+//     },
+//   });
+// };
 
 /**
  * Sends an email.
@@ -48,31 +57,50 @@ const createTransporter = async () => {
  * @param {string} options.html      - HTML body
  * @param {string} [options.text]    - plain-text fallback
  */
-export const sendEmail = async ({ to, subject, html, text }) => {
-  console.log("1. Creating transporter...");
-  const transporter = await createTransporter();
-  console.log("2. Verifying transporter...");
-  await transporter.verify();
+// export const sendEmail = async ({ to, subject, html, text }) => {
+//   console.log("1. Creating transporter...");
+//   const transporter = await createTransporter();
+//   console.log("2. Verifying transporter...");
+//   await transporter.verify();
 
-  console.log("3. Transport verified.");
+//   console.log("3. Transport verified.");
 
-  console.log("4. Sending email...");
-  const mailOptions = {
-    from: `"${process.env.APP_NAME || "GrocCart"}" <${process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@grocart.com"}>`,
+//   console.log("4. Sending email...");
+//   const mailOptions = {
+//     from: `"${process.env.APP_NAME || "GrocCart"}" <${process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@grocart.com"}>`,
+//     to,
+//     subject,
+//     html,
+//     text: text || html.replace(/<[^>]+>/g, ""), // strip tags for plain-text
+//   };
+
+//   const info = await transporter.sendMail(mailOptions);
+
+//   // In development, log the Ethereal preview URL
+//   if (!process.env.SMTP_HOST) {
+//     console.log("📧 Email preview URL:", nodemailer.getTestMessageUrl(info));
+//   }
+
+//   return info;
+// };
+
+export const sendEmail = async ({ to, subject, html }) => {
+  const resend = createResendClient();
+  const { data, error } = await resend.emails.send({
+    from: "onboarding@resend.dev",
     to,
     subject,
     html,
-    text: text || html.replace(/<[^>]+>/g, ""), // strip tags for plain-text
-  };
+  });
 
-  const info = await transporter.sendMail(mailOptions);
-
-  // In development, log the Ethereal preview URL
-  if (!process.env.SMTP_HOST) {
-    console.log("📧 Email preview URL:", nodemailer.getTestMessageUrl(info));
+  if (error) {
+    console.error("Resend Error:", error);
+    throw new Error(error.message);
   }
 
-  return info;
+  console.log("Email sent:", data);
+
+  return data;
 };
 
 /**
