@@ -2,13 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
 import { useAuth } from "../context/AuthContext";
-
 import {
   CheckCircle,
   AlertCircle,
   Loader2,
   ShoppingCart,
   ArrowRight,
+  Mail,
 } from "lucide-react";
 
 export default function VerifyEmail() {
@@ -16,11 +16,17 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState("loading"); // "loading" | "success" | "error"
   const [message, setMessage] = useState("Verifying your email address...");
+  const [countdown, setCountdown] = useState(3);
+  const [visible, setVisible] = useState(false);
 
-  // Prevent duplicate verification requests
   const hasVerified = useRef(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (hasVerified.current) return;
@@ -31,13 +37,13 @@ export default function VerifyEmail() {
 
       if (!token) {
         setStatus("error");
-        setMessage("Verification token is missing.");
+        setMessage("Verification token is missing from the link.");
         return;
       }
 
       try {
         const response = await fetch(
-          `${API_BASE_URL}/api/auth/verify-email?token=${token}`,
+          `${API_BASE_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}`,
         );
 
         const data = await response.json();
@@ -50,115 +56,184 @@ export default function VerifyEmail() {
           );
         }
 
-        // Login user after successful verification
         if (data.user && data.token) {
           login(data.user, data.token);
         }
 
         setStatus("success");
-        setMessage(data.message || "Email verified successfully!");
-
-        setTimeout(() => {
-          navigate("/");
-        }, 2500);
+        setMessage(
+          data.message || "Your email has been verified successfully!",
+        );
       } catch (error) {
         console.error("Verification error:", error);
-
         setStatus("error");
         setMessage(error.message || "Verification failed. Please try again.");
       }
     };
 
     verifyEmail();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Countdown redirect on success
+  useEffect(() => {
+    if (status !== "success") return;
+    if (countdown <= 0) {
+      navigate("/", { replace: true });
+      return;
+    }
+    const id = setInterval(() => setCountdown((c) => c - 1), 1000);
+    return () => clearInterval(id);
+  }, [status, countdown, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-emerald-100 to-emerald-200 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/40">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-emerald-100 to-emerald-200 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="absolute w-[400px] h-[400px] bg-emerald-300 rounded-full blur-[60px] opacity-30 pointer-events-none -top-24 -left-24" />
+      <div className="absolute w-[300px] h-[300px] bg-emerald-400 rounded-full blur-[60px] opacity-30 pointer-events-none -bottom-20 -right-20" />
+      <div className="absolute w-[200px] h-[200px] bg-amber-200 rounded-full blur-[60px] opacity-30 pointer-events-none top-1/2 left-[60%]" />
+
+      {/* Card */}
+      <div
+        className={`w-full max-w-[500px] bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-[0_25px_60px_rgba(6,78,59,0.12),0_0_0_1px_rgba(255,255,255,0.6)] overflow-hidden relative z-10 transition-all duration-[550ms] ease-[cubic-bezier(.22,1,.36,1)] ${
+          visible
+            ? "opacity-100 translate-y-0 scale-100"
+            : "opacity-0 translate-y-7 scale-[0.98]"
+        }`}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-br from-emerald-900 via-emerald-600 to-emerald-400 px-8 py-10 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/20 border border-white/30 mb-5">
-            {status === "loading" ? (
+        <div className="bg-gradient-to-br from-emerald-900 via-emerald-600 to-emerald-400 px-8 pt-10 pb-8 text-center relative overflow-hidden">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px)",
+            }}
+          />
+
+          {/* Animated icon */}
+          <div
+            className="inline-flex items-center justify-center w-[88px] h-[88px] rounded-full bg-white/15 border-2 border-white/30 mb-5 relative"
+            style={
+              status === "loading"
+                ? { animation: "pulse-ring 2s ease-in-out infinite" }
+                : {}
+            }
+          >
+            {status === "loading" && (
               <Loader2 className="w-10 h-10 text-white animate-spin" />
-            ) : status === "success" ? (
+            )}
+            {status === "success" && (
               <CheckCircle className="w-10 h-10 text-white" />
-            ) : (
+            )}
+            {status === "error" && (
               <AlertCircle className="w-10 h-10 text-white" />
             )}
           </div>
 
-          <h1 className="text-3xl font-black text-white mb-2">
-            Email Verification
+          <h1 className="text-[1.75rem] font-black text-white leading-tight mb-1">
+            {status === "loading" && "Verifying Email"}
+            {status === "success" && "All Set! 🎉"}
+            {status === "error" && "Verification Failed"}
           </h1>
-
-          <p className="text-white/80">
-            {status === "loading"
-              ? "Please wait..."
-              : status === "success"
-                ? "Verification completed"
-                : "Verification failed"}
+          <p className="text-white/75 text-sm">
+            {status === "loading" && "Hang tight, just a moment…"}
+            {status === "success" && "Your account is now active"}
+            {status === "error" && "Something went wrong"}
           </p>
         </div>
 
         {/* Body */}
         <div className="p-8">
+          {/* LOADING */}
           {status === "loading" && (
-            <div className="text-center">
-              <div className="flex justify-center mb-5">
-                <Loader2 className="w-12 h-12 animate-spin text-emerald-600" />
+            <div className="text-center py-4">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full border-4 border-emerald-100" />
+                  <div
+                    className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-emerald-500"
+                    style={{ animation: "spin 0.8s linear infinite" }}
+                  />
+                </div>
               </div>
-
-              <p className="text-gray-700 text-lg">Verifying your account...</p>
-
-              <p className="text-gray-500 mt-2">
+              <p className="text-gray-700 font-semibold text-lg mb-1">
+                Verifying your account…
+              </p>
+              <p className="text-gray-400 text-sm">
                 This will only take a moment.
               </p>
             </div>
           )}
 
+          {/* SUCCESS */}
           {status === "success" && (
             <div className="text-center">
-              <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-5" />
+              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5">
+                <CheckCircle className="w-11 h-11 text-emerald-500" />
+              </div>
 
-              <h2 className="text-2xl font-bold text-green-700 mb-3">
-                Success!
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Welcome to GroCart!
               </h2>
+              <p className="text-gray-500 text-sm mb-6">{message}</p>
 
-              <p className="text-gray-700 mb-5">{message}</p>
-
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <p className="text-green-700 text-sm">You are now logged in.</p>
-
-                <p className="text-green-700 text-sm mt-1">
-                  Redirecting to the homepage...
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 text-emerald-700 text-sm font-medium mb-1">
+                  <CheckCircle size={15} />
+                  You're now logged in
+                </div>
+                <p className="text-emerald-600 text-sm">
+                  Redirecting to homepage in{" "}
+                  <span className="font-bold text-emerald-800">
+                    {countdown}s
+                  </span>
+                  …
                 </p>
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-1.5 bg-emerald-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 rounded-full"
+                  style={{
+                    width: `${((3 - countdown) / 3) * 100}%`,
+                    transition: "width 1s linear",
+                  }}
+                />
               </div>
             </div>
           )}
 
+          {/* ERROR */}
           {status === "error" && (
             <div className="text-center">
-              <AlertCircle className="w-20 h-20 text-red-500 mx-auto mb-5" />
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+                <AlertCircle className="w-11 h-11 text-red-400" />
+              </div>
 
-              <h2 className="text-2xl font-bold text-red-700 mb-3">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
                 Verification Failed
               </h2>
+              <p className="text-gray-500 text-sm mb-6">{message}</p>
 
-              <p className="text-gray-700 mb-6">{message}</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-700 text-sm mb-6">
+                The link may have expired or already been used. Try registering
+                again to get a new link.
+              </div>
 
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => navigate("/register")}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold transition"
+                  className="w-full bg-gradient-to-br from-emerald-900 to-emerald-500 hover:opacity-90 text-white py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2"
                 >
+                  <Mail size={16} />
                   Create New Account
                 </button>
-
                 <button
-                  onClick={() => navigate("/check-email")}
-                  className="w-full border border-emerald-600 text-emerald-700 hover:bg-emerald-50 py-3 rounded-xl font-semibold transition"
+                  onClick={() => navigate("/")}
+                  className="w-full border border-gray-200 text-gray-600 hover:bg-gray-50 py-3 rounded-xl font-semibold transition-all duration-200"
                 >
-                  Back to Email Instructions
+                  Back to Homepage
                 </button>
               </div>
             </div>
@@ -166,33 +241,43 @@ export default function VerifyEmail() {
         </div>
 
         {/* Footer */}
-        <div className="border-t bg-gray-50 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-emerald-900">
-            <ShoppingCart size={18} />
+        <div className="border-t border-gray-100 bg-gray-50 px-8 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-black text-base text-emerald-900">
+            <ShoppingCart size={16} />
             Gro<span className="text-amber-400">Cart</span>
           </div>
 
           {status === "success" && (
             <button
-              onClick={() => navigate("/")}
-              className="text-emerald-600 hover:text-emerald-800 flex items-center gap-1 text-sm font-medium"
+              onClick={() => navigate("/", { replace: true })}
+              className="flex items-center gap-1 text-[0.8rem] text-emerald-500 hover:text-emerald-900 transition-colors"
             >
-              Continue
-              <ArrowRight size={14} />
+              Go now
+              <ArrowRight size={12} />
             </button>
           )}
 
           {status === "error" && (
             <button
               onClick={() => navigate("/")}
-              className="text-emerald-600 hover:text-emerald-800 flex items-center gap-1 text-sm font-medium"
+              className="flex items-center gap-1 text-[0.8rem] text-emerald-500 hover:text-emerald-900 transition-colors"
             >
               Home
-              <ArrowRight size={14} />
+              <ArrowRight size={12} />
             </button>
           )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes pulse-ring {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3); }
+          50% { box-shadow: 0 0 0 14px rgba(255,255,255,0); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
