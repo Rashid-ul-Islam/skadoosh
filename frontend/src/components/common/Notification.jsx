@@ -196,11 +196,11 @@ const Notification = ({ show, type = "success", title, message, onClose }) => {
   };
 
   return (
-    <div className="fixed top-4 left-1/2 z-50 pointer-events-none">
+    <div className="fixed top-4 left-1/2 z-[99999] pointer-events-none w-full flex justify-center">
       <div
-        className={`bg-white rounded-2xl shadow-2xl max-w-md w-full transition-all duration-500 ease-in-out pointer-events-auto border-2 ${styles.borderColor} ${styles.glowColor} notification-enter backdrop-blur-lg relative overflow-hidden`}
+        className={`bg-white rounded-2xl shadow-2xl max-w-md w-11/12 sm:w-full transition-all duration-500 ease-in-out pointer-events-auto border-2 ${styles.borderColor} ${styles.glowColor} notification-enter backdrop-blur-lg relative overflow-hidden`}
         style={{
-          minWidth: "420px",
+          width: "min(440px, calc(100vw - 32px))",
           transform: "translateX(-50%)",
           boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1), ${getGlowShadow(type)}`,
         }}

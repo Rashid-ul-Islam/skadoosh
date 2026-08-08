@@ -29,37 +29,41 @@ function ScrollToTop() {
 }
 
 
+import { NotificationProvider } from "./components/hooks/useNotification.jsx";
+
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <ScrollToTop />
-        <NavBar />
-        <Routes>
-          <Route path="/" element={<Homepage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/product/:productId" element={<ProductDetails />} />
-          <Route path="/check-email" element={<CheckEmail />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/sell" element={<SellPage />} />
-          <Route path="/listings" element={<ListingPage />} />
-          <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/my-orders" element={<MyOrders />} />
-          <Route
-            path="/chat/order/:orderId"
-            element={
-                <OrderChatPage />            }
-          />
-          <Route
-            path="/inbox"
-            element={
-                <InboxPage />
-            }
-          />
-        </Routes>
-      </Router>
+      <NotificationProvider>
+        <Router>
+          <ScrollToTop />
+          <NavBar />
+          <Routes>
+            <Route path="/" element={<Homepage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/product/:productId" element={<ProductDetails />} />
+            <Route path="/check-email" element={<CheckEmail />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/sell" element={<SellPage />} />
+            <Route path="/listings" element={<ListingPage />} />
+            <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/my-orders" element={<MyOrders />} />
+            <Route
+              path="/chat/order/:orderId"
+              element={
+                  <OrderChatPage />            }
+            />
+            <Route
+              path="/inbox"
+              element={
+                  <InboxPage />
+              }
+            />
+          </Routes>
+        </Router>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

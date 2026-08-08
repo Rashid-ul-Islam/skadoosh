@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../config/api";
 import ProductCard from "../components/layout/ProductCard";
+import { useNotification } from "../components/hooks/useNotification";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 12;
@@ -148,6 +149,7 @@ function ListingCard({ listing, onDelete, onStatusChange, actionLoading }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function MyListingsPage() {
   const { token } = useAuth();
+  const { showSuccess, showError } = useNotification();
 
   const [listings, setListings] = useState([]);
   const [total, setTotal] = useState(0);
@@ -210,16 +212,18 @@ export default function MyListingsPage() {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Delete failed.");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Delete failed.");
         setListings((prev) => prev.filter((l) => l._id !== id));
         setTotal((prev) => prev - 1);
-      } catch {
-        alert("Could not delete listing. Please try again.");
+        showSuccess("Listing Deleted", "The listing was successfully removed.");
+      } catch (err) {
+        showError("Delete Failed", err.message || "Could not delete listing. Please try again.");
       } finally {
         setActionLoading(null);
       }
     },
-    [token],
+    [token, showSuccess, showError],
   );
 
   const handleStatusChange = useCallback(
@@ -234,17 +238,19 @@ export default function MyListingsPage() {
           },
           body: JSON.stringify({ status }),
         });
-        if (!res.ok) throw new Error("Status update failed.");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Status update failed.");
         setListings((prev) =>
           prev.map((l) => (l._id === id ? { ...l, status } : l)),
         );
-      } catch {
-        alert("Could not update status. Please try again.");
+        showSuccess("Status Updated", `Listing status changed to ${status}.`);
+      } catch (err) {
+        showError("Update Failed", err.message || "Could not update status. Please try again.");
       } finally {
         setActionLoading(null);
       }
     },
-    [token],
+    [token, showSuccess, showError],
   );
 
   const isFiltered = Boolean(statusFilter || typeFilter);

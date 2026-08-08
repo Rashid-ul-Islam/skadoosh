@@ -706,13 +706,6 @@ export default function RegisterPage() {
             </button>
           </div>
         </div>
-        <Notification
-          show={notification.show}
-          type={notification.type}
-          title={notification.title}
-          message={notification.message}
-          onClose={hideNotification}
-        />
       </div>
 
       {/* Login Modal */}

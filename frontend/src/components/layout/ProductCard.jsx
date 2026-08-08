@@ -30,7 +30,7 @@ const ProductCard = ({
 }) => {
   const navigate = useNavigate();
   const { user, token, isLoggedIn, updateUser } = useAuth();
-  const { notification, showError, hideNotification } = useNotification();
+  const { showSuccess, showError } = useNotification();
 
   // Support both Listing schema (_id) and legacy shape (product_id / id)
   const productId = product?._id || product?.product_id || product?.id;
@@ -125,8 +125,10 @@ const ProductCard = ({
         return;
       }
 
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
+      showSuccess(
+        "Added to Cart",
+        `Added ${quantity} × "${product.title || product.product_name || "item"}" to cart.`,
+      );
       onAddToCart?.(product, quantity);
       setQuantity(0);
     } catch (error) {
@@ -170,9 +172,14 @@ const ProductCard = ({
         body.user ?? { ...user, wishlist: body.user?.wishlist ?? [] },
       );
       onWishlistChange?.(body.user ?? null);
+      showSuccess(
+        isLiked ? "Removed from Wishlist" : "Saved to Wishlist",
+        `"${product.title || product.product_name || "Item"}" ${isLiked ? "removed from" : "added to"} your wishlist.`,
+      );
       setIsLiked(!isLiked);
     } catch (error) {
       console.error("Wishlist toggle failed:", error);
+      showError("Wishlist Error", error?.message || "Failed to update wishlist.");
     } finally {
       setIsLoading(false);
     }
@@ -374,19 +381,6 @@ const ProductCard = ({
             onClose={() => setIsLoginModalOpen(false)}
             onLoginSuccess={handleLoginSuccess}
             currentPath={`/product/${productId}`}
-          />,
-          document.body,
-        )}
-
-      {/* Notification — portalled to body */}
-      {notification.show &&
-        createPortal(
-          <Notification
-            show={notification.show}
-            type={notification.type}
-            title={notification.title}
-            message={notification.message}
-            onClose={hideNotification}
           />,
           document.body,
         )}

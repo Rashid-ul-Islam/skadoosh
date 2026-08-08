@@ -21,6 +21,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import LoginModal from "../components/auth/LoginModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useNotification } from "../components/hooks/useNotification.js";
 import CartBar from "../components/layout/CartBar.jsx";
 // Helper function to calculate rating distribution
 const calculateRatingDistribution = (reviews) => {
@@ -51,6 +52,7 @@ const ProductDetailsPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { user, token, isLoggedIn, updateUser } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const cartBarRef = useRef(null);
 
   // Base URL for serving listing images from the backend
@@ -71,7 +73,6 @@ const ProductDetailsPage = () => {
   const [reviews, setReviews] = useState([]);
   const [reviewStats, setReviewStats] = useState({});
   const [cartItems, setCartItems] = useState([]);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // Loading states and login modal
   const [isCartLoading, setIsCartLoading] = useState(false);
@@ -198,8 +199,6 @@ const ProductDetailsPage = () => {
     }
   }, [isLoggedIn, user, product?._id]);
 
-  // isFavorite is derived from user.wishlist via checkIfLiked — no modal-close effect needed
-
   const checkIfLiked = () => {
     if (!user || !product?._id) return;
     const wishlist = Array.isArray(user.wishlist) ? user.wishlist : [];
@@ -241,15 +240,18 @@ const ProductDetailsPage = () => {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        console.error("addToCart error:", data.error);
+        showError("Cart Error", data.error || "Failed to add item to cart.");
         return;
       }
 
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
+      showSuccess(
+        "Added to Cart 🎉",
+        `Added ${quantity} × "${product.name || product.product_name}" to your cart.`,
+      );
       cartBarRef.current?.refreshCart();
     } catch (err) {
       console.error("handleAddToCart error:", err);
+      showError("Cart Error", err.message || "Failed to add item to cart.");
     } finally {
       setIsCartLoading(false);
     }
@@ -288,9 +290,14 @@ const ProductDetailsPage = () => {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || "Failed to update wishlist.");
       updateUser?.(body.user ?? null);
+      showSuccess(
+        isFavorite ? "Removed from Wishlist" : "Saved to Wishlist",
+        `"${product.name || product.product_name}" ${isFavorite ? "removed from" : "added to"} your wishlist.`,
+      );
       setIsFavorite(!isFavorite);
     } catch (error) {
       console.error("Wishlist toggle failed:", error);
+      showError("Wishlist Error", error.message || "Failed to update wishlist.");
     } finally {
       setIsLikesLoading(false);
     }
@@ -411,13 +418,6 @@ const ProductDetailsPage = () => {
       <CartBar ref={cartBarRef} />
 
       <div className={`transition-all duration-300 } min-h-screen bg-gray-50`}>
-        {/* Success Message */}
-        {showSuccessMessage && (
-          <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center">
-            <Check className="w-5 h-5 mr-2" />
-            Added to cart successfully!
-          </div>
-        )}
 
         <div className="max-w-7xl mx-auto px-4 pt-0 pb-8">
           {renderBreadcrumb()}

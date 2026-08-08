@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
 import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../components/hooks/useNotification";
 import {
   CheckCircle,
   AlertCircle,
@@ -15,6 +16,7 @@ export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { showSuccess, showError } = useNotification();
 
   const [status, setStatus] = useState("loading"); // "loading" | "success" | "error"
   const [message, setMessage] = useState("Verifying your email address...");
@@ -38,6 +40,7 @@ export default function VerifyEmail() {
       if (!token) {
         setStatus("error");
         setMessage("Verification token is missing from the link.");
+        showError("Verification Error", "Verification token is missing from the link.");
         return;
       }
 
@@ -61,13 +64,14 @@ export default function VerifyEmail() {
         }
 
         setStatus("success");
-        setMessage(
-          data.message || "Your email has been verified successfully!",
-        );
+        const successMsg = data.message || "Your email has been verified successfully!";
+        setMessage(successMsg);
+        showSuccess("Email Verified! 🎉", successMsg);
       } catch (error) {
         console.error("Verification error:", error);
         setStatus("error");
         setMessage(error.message || "Verification failed. Please try again.");
+        showError("Verification Failed", error.message || "Verification failed. Please try again.");
       }
     };
 

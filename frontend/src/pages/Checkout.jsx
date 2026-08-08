@@ -19,6 +19,7 @@ import {
   Info,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useNotification } from "../components/hooks/useNotification.js";
 import { API_BASE_URL } from "../config/api.js";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ function StatusBanner({ results }) {
 export default function CheckoutPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { showSuccess, showError } = useNotification();
 
   const [cartItems, setCartItems] = useState([]);
   const [loadingCart, setLoadingCart] = useState(true);
@@ -223,6 +225,24 @@ export default function CheckoutPage() {
       } catch (err) {
         outcomes.push({ ok: false, title: item.title, error: err.message });
       }
+    }
+
+    const failed = outcomes.filter((r) => !r.ok);
+    if (failed.length === 0) {
+      showSuccess(
+        "All Requests Sent! 🎉",
+        `Sent ${outcomes.length} order request(s) to sellers.`,
+      );
+    } else if (failed.length < outcomes.length) {
+      showSuccess(
+        "Partial Requests Sent",
+        `${outcomes.length - failed.length} request(s) sent, ${failed.length} failed.`,
+      );
+    } else {
+      showError(
+        "Order Submission Failed",
+        "Could not send order requests. Please try again.",
+      );
     }
 
     setResults(outcomes);

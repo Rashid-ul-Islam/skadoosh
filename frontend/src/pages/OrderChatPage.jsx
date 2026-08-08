@@ -32,6 +32,7 @@ import {
   Circle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useNotification } from "../components/hooks/useNotification.js";
 import { API_BASE_URL, SOCKET_URL } from "../config/api.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -679,6 +680,7 @@ export default function OrderChatPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { token, user } = useAuth();
+  const { showSuccess, showError } = useNotification();
 
   const [conversation, setConversation] = useState(null);
   const [order, setOrder] = useState(null);
@@ -689,7 +691,6 @@ export default function OrderChatPage() {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [toast, setToast] = useState(null);
 
   const [otherTyping, setOtherTyping] = useState(false);
   const [otherOnline, setOtherOnline] = useState(false);
@@ -874,7 +875,7 @@ export default function OrderChatPage() {
         ...prev,
         messages: prev.messages.filter((m) => m._id !== tempId),
       }));
-      showToast("error", err.message);
+      showError("Chat Error", err.message);
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -897,7 +898,7 @@ export default function OrderChatPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to submit review.");
         setOrder((prev) => ({ ...prev, review: data.review }));
-        showToast("success", "Review submitted!");
+        showSuccess("Review Submitted", "Thank you for your feedback!");
       } else {
         const res = await fetch(
           `${API_BASE_URL}/api/conversations/order/${orderId}/${action}`,
@@ -918,10 +919,10 @@ export default function OrderChatPage() {
           complete: "Receipt confirmed! Order completed.",
           dispute: "Dispute opened. Our team will review it.",
         };
-        showToast("success", successMessages[action] || "Done.");
+        showSuccess("Order Updated", successMessages[action] || "Done.");
       }
     } catch (err) {
-      showToast("error", err.message);
+      showError("Order Action Failed", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -1031,24 +1032,6 @@ export default function OrderChatPage() {
           <span className="hidden sm:inline text-xs">Order</span>
         </button>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`mx-4 mt-2 flex-shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium shadow-sm ${
-            toast.type === "success"
-              ? "bg-green-50 border border-green-200 text-green-700"
-              : "bg-red-50 border border-red-200 text-red-700"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          ) : (
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          )}
-          {toast.text}
-        </div>
-      )}
 
       {/* ── Main layout ── */}
       <div className="flex flex-1 overflow-hidden">

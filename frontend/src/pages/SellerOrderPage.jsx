@@ -22,6 +22,7 @@ import {
   Filter,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useNotification } from "../components/hooks/useNotification.js";
 import { API_BASE_URL } from "../config/api.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -376,21 +377,16 @@ function OrderCard({ order, onAction, actionLoadingId }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SellerOrdersPage() {
   const { token } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [actionLoadingId, setActionLoadingId] = useState(null);
-  const [toast, setToast] = useState(null);
 
   const authHeaders = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
-  };
-
-  const showToast = (type, text) => {
-    setToast({ type, text });
-    setTimeout(() => setToast(null), 4000);
   };
 
   const fetchOrders = useCallback(async () => {
@@ -442,9 +438,9 @@ export default function SellerOrdersPage() {
         deliver: "Marked as delivered. Waiting for buyer confirmation.",
         cancel: "Order cancelled.",
       };
-      showToast("success", msgs[action] || "Done.");
+      showSuccess("Order Updated", msgs[action] || "Done.");
     } catch (err) {
-      showToast("error", err.message);
+      showError("Order Error", err.message);
     } finally {
       setActionLoadingId(null);
     }
@@ -502,19 +498,6 @@ export default function SellerOrdersPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Toast */}
-        {toast && (
-          <div
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium shadow-sm ${toast.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"}`}
-          >
-            {toast.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-            )}
-            {toast.text}
-          </div>
-        )}
 
         {/* Stats */}
         {!loading && !error && (
