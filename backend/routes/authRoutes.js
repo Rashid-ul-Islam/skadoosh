@@ -8,6 +8,8 @@ import {
     login,
     logout,
     getMe,
+    updateProfile,
+    changePassword,
     getWishlist,
     addToWishlist,
     removeFromWishlist,
@@ -83,6 +85,12 @@ router.post("/logout", protect, logout);
 
 // GET  /api/auth/me  — returns the current user's profile
 router.get("/me", protect, getMe);
+
+// PUT  /api/auth/profile  — updates the current user's profile
+router.put("/profile", protect, updateProfile);
+
+// PUT  /api/auth/change-password  — changes the current user's password
+router.put("/change-password", protect, changePassword);
 
 // GET  /api/auth/wishlist  — returns the current user's wishlist
 router.get("/wishlist", protect, getWishlist);

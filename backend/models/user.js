@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema(
             unique: true,
             lowercase: true,
             trim: true,
+            immutable: true, // Database-level protection: email cannot be changed once created
             match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please enter a valid email address"],
         },
         password: {

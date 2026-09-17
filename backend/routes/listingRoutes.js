@@ -3,6 +3,7 @@ import {
     upload,
     createListing,
     getListings,
+    searchListings,
     getListingById,
     getMyListings,
     getNearbyListings,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // ── Public ────────────────────────────────────────────────────────────────────
 router.get("/", getListings);
+router.get("/search", searchListings);
 
 // ── Protected (static paths — must come before /:id) ─────────────────────────
 router.get("/my", protect, getMyListings);
