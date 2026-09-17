@@ -254,39 +254,39 @@ export default function SearchPage() {
 
   return (
     <CartBar>
-      <div className="min-h-screen bg-slate-900 text-slate-100 pb-20">
+      <div className="min-h-screen bg-gray-50 text-gray-900 pb-20">
         {/* ── Top Breadcrumbs & Search Bar ── */}
-        <div className="bg-slate-850 border-b border-slate-750/80 px-4 sm:px-8 py-5">
+        <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-5">
           <div className="max-w-7xl mx-auto space-y-4">
             {/* Breadcrumbs */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Link to="/" className="hover:text-emerald-400 transition-colors">Home</Link>
-              <ChevronRight className="w-3 h-3 text-slate-600" />
-              <Link to="/search" className="hover:text-emerald-400 transition-colors">Marketplace</Link>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Link to="/" className="hover:text-emerald-600 transition-colors">Home</Link>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <Link to="/search" className="hover:text-emerald-600 transition-colors">Marketplace</Link>
               {category && (
                 <>
-                  <ChevronRight className="w-3 h-3 text-slate-600" />
-                  <span className="text-slate-300 truncate max-w-[200px]">{category}</span>
+                  <ChevronRight className="w-3 h-3 text-gray-400" />
+                  <span className="text-gray-700 truncate max-w-[200px]">{category}</span>
                 </>
               )}
               {activeQueryDisplay && (
                 <>
-                  <ChevronRight className="w-3 h-3 text-slate-600" />
-                  <span className="text-emerald-400 font-medium truncate max-w-[200px]">&ldquo;{activeQueryDisplay}&rdquo;</span>
+                  <ChevronRight className="w-3 h-3 text-gray-400" />
+                  <span className="text-emerald-600 font-medium truncate max-w-[200px]">&ldquo;{activeQueryDisplay}&rdquo;</span>
                 </>
               )}
             </div>
 
             {/* In-page Search Bar */}
             <form onSubmit={handleSearchSubmit} className="max-w-3xl">
-              <div className="relative flex items-center rounded-xl overflow-hidden border border-slate-700 bg-slate-800/90 shadow-lg focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition-all">
-                <Search className="w-5 h-5 text-slate-400 ml-4 shrink-0" />
+              <div className="relative flex items-center rounded-xl overflow-hidden border border-gray-300 bg-white shadow-sm focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition-all">
+                <Search className="w-5 h-5 text-gray-400 ml-4 shrink-0" />
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search products by title, category, or brand..."
-                  className="w-full px-4 py-3 bg-transparent text-white placeholder-slate-400 focus:outline-none text-sm sm:text-base"
+                  className="w-full px-4 py-3 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-sm sm:text-base"
                 />
                 {query && (
                   <button
@@ -295,7 +295,7 @@ export default function SearchPage() {
                       setQuery("");
                       updateUrlParams({ q: "" });
                     }}
-                    className="p-2 text-slate-400 hover:text-red-400 transition-colors mr-1 cursor-pointer"
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors mr-1 cursor-pointer"
                     title="Clear search"
                   >
                     <X className="w-4 h-4" />
@@ -320,8 +320,8 @@ export default function SearchPage() {
                 }}
                 className={`px-3.5 py-1.5 rounded-full border transition-all shrink-0 cursor-pointer ${
                   !category
-                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-semibold"
-                    : "bg-slate-800/80 text-slate-300 border-slate-700 hover:border-slate-600 hover:text-white"
+                    ? "bg-emerald-500 text-white border-emerald-500 font-semibold shadow-sm"
+                    : "bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-200"
                 }`}
               >
                 All Departments
@@ -337,8 +337,8 @@ export default function SearchPage() {
                   }}
                   className={`px-3.5 py-1.5 rounded-full border transition-all shrink-0 cursor-pointer ${
                     category === cat
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-semibold"
-                      : "bg-slate-800/80 text-slate-300 border-slate-700 hover:border-slate-600 hover:text-white"
+                      ? "bg-emerald-500 text-white border-emerald-500 font-semibold shadow-sm"
+                      : "bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-200"
                   }`}
                 >
                   {cat}
@@ -348,8 +348,8 @@ export default function SearchPage() {
 
             {/* Related search suggestions (Tasteful e-commerce pills) */}
             {ragInsights?.expandedKeywords?.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap text-xs pt-1 border-t border-slate-800">
-                <span className="text-slate-400 font-medium">Related searches:</span>
+              <div className="flex items-center gap-2 flex-wrap text-xs pt-1 border-t border-gray-200">
+                <span className="text-gray-500 font-medium">Related searches:</span>
                 {ragInsights.expandedKeywords.slice(0, 6).map((kw, i) => (
                   <button
                     key={i}
@@ -358,9 +358,9 @@ export default function SearchPage() {
                       setQuery(kw);
                       updateUrlParams({ q: kw });
                     }}
-                    className="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-300 px-2.5 py-1 rounded-md border border-slate-700 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-emerald-700 px-2.5 py-1 rounded-md border border-gray-200 transition-colors cursor-pointer"
                   >
-                    <Search className="w-3 h-3 text-slate-400" />
+                    <Search className="w-3 h-3 text-gray-400" />
                     <span>{kw}</span>
                   </button>
                 ))}
@@ -372,24 +372,24 @@ export default function SearchPage() {
         {/* ── Main Catalog Section (Sidebar + Product Grid) ── */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
           {/* Mobile Filter Button & Sort Header */}
-          <div className="flex lg:hidden items-center justify-between gap-3 mb-4 bg-slate-800/90 p-3 rounded-xl border border-slate-700">
+          <div className="flex lg:hidden items-center justify-between gap-3 mb-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
             <button
               onClick={() => setMobileFilterOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold cursor-pointer"
             >
               <SlidersHorizontal className="w-4 h-4" />
               <span>Filters {isAnyFilterActive && `• Active`}</span>
             </button>
 
             <div className="flex items-center gap-2">
-              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+              <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
               <select
                 value={sort}
                 onChange={(e) => {
                   setSort(e.target.value);
                   updateUrlParams({ sort: e.target.value });
                 }}
-                className="bg-slate-700 text-white text-xs border border-slate-600 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="bg-white text-gray-700 text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="relevance">Featured</option>
                 <option value="price_asc">Price: Low to High</option>
@@ -402,16 +402,16 @@ export default function SearchPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* ── Desktop Filters Sidebar ── */}
-            <div className="hidden lg:block lg:col-span-1 space-y-6 bg-slate-800/70 border border-slate-700/80 p-5 rounded-2xl h-fit backdrop-blur-sm sticky top-24">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-                <div className="flex items-center gap-2 text-white font-bold text-base">
-                  <Filter className="w-4 h-4 text-emerald-400" />
+            <div className="hidden lg:block lg:col-span-1 space-y-6 bg-white border border-gray-200 p-5 rounded-2xl h-fit shadow-sm sticky top-24">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-150">
+                <div className="flex items-center gap-2 text-gray-900 font-bold text-base">
+                  <Filter className="w-4 h-4 text-emerald-600" />
                   <span>Filter Products</span>
                 </div>
                 {isAnyFilterActive && (
                   <button
                     onClick={handleClearFilters}
-                    className="text-xs text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                    className="text-xs text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
                   >
                     Reset All
                   </button>
@@ -420,7 +420,7 @@ export default function SearchPage() {
 
               {/* Department / Category */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
                   Category
                 </label>
                 <select
@@ -429,7 +429,7 @@ export default function SearchPage() {
                     setCategory(e.target.value);
                     updateUrlParams({ category: e.target.value });
                   }}
-                  className="w-full bg-slate-900/90 text-white text-sm border border-slate-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="">All Categories</option>
                   {CATEGORIES.map((cat) => (
@@ -442,7 +442,7 @@ export default function SearchPage() {
 
               {/* Price Range & Quick Presets */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
                   Price ($)
                 </label>
                 <div className="flex items-center gap-2">
@@ -452,16 +452,16 @@ export default function SearchPage() {
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     onBlur={() => updateUrlParams({ minPrice })}
-                    className="w-full bg-slate-900/90 text-white text-sm border border-slate-600 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-gray-400"
                   />
-                  <span className="text-slate-500">-</span>
+                  <span className="text-gray-400">-</span>
                   <input
                     type="number"
                     placeholder="Max"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                     onBlur={() => updateUrlParams({ maxPrice })}
-                    className="w-full bg-slate-900/90 text-white text-sm border border-slate-600 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-gray-400"
                   />
                 </div>
 
@@ -478,8 +478,8 @@ export default function SearchPage() {
                       }}
                       className={`text-left text-xs py-1 px-2 rounded-lg transition-colors cursor-pointer ${
                         minPrice === preset.min && maxPrice === preset.max
-                          ? "bg-emerald-500/20 text-emerald-400 font-semibold"
-                          : "text-slate-400 hover:text-white hover:bg-slate-700/40"
+                          ? "bg-emerald-50 text-emerald-700 font-semibold"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                       }`}
                     >
                       {preset.label}
@@ -490,10 +490,10 @@ export default function SearchPage() {
 
               {/* Buying Format (Sale vs Rent) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
                   Listing Type
                 </label>
-                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-900/90 border border-slate-700 rounded-xl">
+                <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 border border-gray-200 rounded-xl">
                   {["all", "sell", "rent"].map((t) => (
                     <button
                       key={t}
@@ -504,8 +504,8 @@ export default function SearchPage() {
                       }}
                       className={`py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors cursor-pointer ${
                         listingType === t
-                          ? "bg-emerald-500 text-white shadow"
-                          : "text-slate-400 hover:text-white"
+                          ? "bg-emerald-500 text-white shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
                       }`}
                     >
                       {t === "all" ? "All" : t === "sell" ? "Buy" : "Rent"}
@@ -516,7 +516,7 @@ export default function SearchPage() {
 
               {/* Item Condition */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
                   Item Condition
                 </label>
                 <select
@@ -525,7 +525,7 @@ export default function SearchPage() {
                     setCondition(e.target.value);
                     updateUrlParams({ condition: e.target.value });
                   }}
-                  className="w-full bg-slate-900/90 text-white text-sm border border-slate-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="all">Any Condition</option>
                   {CONDITIONS.map((c) => (
@@ -539,14 +539,14 @@ export default function SearchPage() {
               {/* Distance & Location Filter */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                  <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Location Radius</span>
                   </label>
                   <button
                     type="button"
                     onClick={requestGeolocation}
-                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                    className="text-xs text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer font-medium"
                   >
                     <RefreshCw className={`w-3 h-3 ${locationStatus === "loading" ? "animate-spin" : ""}`} />
                     <span>{userCoords ? "Update" : "Use GPS"}</span>
@@ -560,7 +560,7 @@ export default function SearchPage() {
                     updateUrlParams({ maxDistance: e.target.value });
                   }}
                   disabled={!userCoords}
-                  className="w-full bg-slate-900/90 text-white text-sm border border-slate-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {DISTANCE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -569,15 +569,15 @@ export default function SearchPage() {
                   ))}
                 </select>
                 {!userCoords && (
-                  <p className="text-[11px] text-slate-400 mt-1">
+                  <p className="text-[11px] text-gray-500 mt-1">
                     Enable GPS or set profile location to filter nearby items.
                   </p>
                 )}
               </div>
 
               {/* Delivery & Seller Badges */}
-              <div className="space-y-3 pt-3 border-t border-slate-700/80">
-                <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-200 hover:text-white select-none">
+              <div className="space-y-3 pt-3 border-t border-gray-150">
+                <label className="flex items-center gap-3 cursor-pointer text-sm text-gray-700 hover:text-gray-900 select-none">
                   <input
                     type="checkbox"
                     checked={deliveryAvailable}
@@ -585,13 +585,13 @@ export default function SearchPage() {
                       setDeliveryAvailable(e.target.checked);
                       updateUrlParams({ deliveryAvailable: e.target.checked ? "true" : "" });
                     }}
-                    className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-400 accent-emerald-500"
+                    className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 accent-emerald-500"
                   />
-                  <Truck className="w-4 h-4 text-sky-400" />
+                  <Truck className="w-4 h-4 text-sky-600" />
                   <span>Delivery Available</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer text-sm text-slate-200 hover:text-white select-none">
+                <label className="flex items-center gap-3 cursor-pointer text-sm text-gray-700 hover:text-gray-900 select-none">
                   <input
                     type="checkbox"
                     checked={sellerVerified}
@@ -599,9 +599,9 @@ export default function SearchPage() {
                       setSellerVerified(e.target.checked);
                       updateUrlParams({ sellerVerified: e.target.checked ? "true" : "" });
                     }}
-                    className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-400 accent-emerald-500"
+                    className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 accent-emerald-500"
                   />
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
                   <span>Verified Sellers Only</span>
                 </label>
               </div>
@@ -610,12 +610,12 @@ export default function SearchPage() {
             {/* ── Main Catalog Results Section ── */}
             <div className="lg:col-span-3 space-y-4">
               {/* Header Toolbar */}
-              <div className="hidden lg:flex items-center justify-between bg-slate-850 border border-slate-700/80 px-5 py-3 rounded-2xl">
+              <div className="hidden lg:flex items-center justify-between bg-white border border-gray-200 px-5 py-3 rounded-2xl shadow-sm">
                 <div>
-                  <h2 className="text-lg font-bold text-white">
+                  <h2 className="text-lg font-bold text-gray-900">
                     {activeQueryDisplay ? `Results for "${activeQueryDisplay}"` : category ? category : "All Products"}
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-gray-500">
                     Showing {listings.length} of {total} item{total !== 1 ? "s" : ""}
                   </p>
                 </div>
@@ -623,14 +623,14 @@ export default function SearchPage() {
                 <div className="flex items-center gap-4">
                   {/* Sort By */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 font-medium">Sort by:</span>
+                    <span className="text-xs text-gray-500 font-medium">Sort by:</span>
                     <select
                       value={sort}
                       onChange={(e) => {
                         setSort(e.target.value);
                         updateUrlParams({ sort: e.target.value });
                       }}
-                      className="bg-slate-800 text-white text-xs border border-slate-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                      className="bg-white text-gray-700 text-xs border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value="relevance">Best Match</option>
                       <option value="price_asc">Price: Low to High</option>
@@ -641,12 +641,12 @@ export default function SearchPage() {
                   </div>
 
                   {/* Grid / List View Toggle */}
-                  <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5">
+                  <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg p-0.5">
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
                       className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                        viewMode === "grid" ? "bg-emerald-500 text-white" : "text-slate-400 hover:text-white"
+                        viewMode === "grid" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"
                       }`}
                       title="Grid view"
                     >
@@ -656,7 +656,7 @@ export default function SearchPage() {
                       type="button"
                       onClick={() => setViewMode("list")}
                       className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                        viewMode === "list" ? "bg-emerald-500 text-white" : "text-slate-400 hover:text-white"
+                        viewMode === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"
                       }`}
                       title="List view"
                     >
@@ -669,12 +669,12 @@ export default function SearchPage() {
               {/* Active Filter Pills Bar */}
               {isAnyFilterActive && (
                 <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <span className="text-slate-400">Filters:</span>
+                  <span className="text-gray-500 font-medium">Filters:</span>
                   {category && (
-                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
                       <span>Category: {category}</span>
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-400"
+                        className="w-3 h-3 cursor-pointer hover:text-red-500"
                         onClick={() => {
                           setCategory("");
                           updateUrlParams({ category: "" });
@@ -683,10 +683,10 @@ export default function SearchPage() {
                     </span>
                   )}
                   {(minPrice || maxPrice) && (
-                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
                       <span>Price: ${minPrice || "0"} – ${maxPrice || "∞"}</span>
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-400"
+                        className="w-3 h-3 cursor-pointer hover:text-red-500"
                         onClick={() => {
                           setMinPrice("");
                           setMaxPrice("");
@@ -696,10 +696,10 @@ export default function SearchPage() {
                     </span>
                   )}
                   {listingType !== "all" && (
-                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
                       <span>Format: {listingType === "sell" ? "Buy Now" : "Rent"}</span>
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-400"
+                        className="w-3 h-3 cursor-pointer hover:text-red-500"
                         onClick={() => {
                           setListingType("all");
                           updateUrlParams({ listingType: "all" });
@@ -708,10 +708,10 @@ export default function SearchPage() {
                     </span>
                   )}
                   {condition !== "all" && (
-                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
                       <span className="capitalize">Condition: {condition.replace("_", " ")}</span>
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-400"
+                        className="w-3 h-3 cursor-pointer hover:text-red-500"
                         onClick={() => {
                           setCondition("all");
                           updateUrlParams({ condition: "all" });
@@ -720,11 +720,11 @@ export default function SearchPage() {
                     </span>
                   )}
                   {deliveryAvailable && (
-                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 bg-sky-50 text-sky-700 border border-sky-200 px-3 py-1 rounded-full shadow-sm">
                       <Truck className="w-3 h-3" />
                       <span>Delivery Only</span>
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-400"
+                        className="w-3 h-3 cursor-pointer hover:text-red-500"
                         onClick={() => {
                           setDeliveryAvailable(false);
                           updateUrlParams({ deliveryAvailable: "" });
@@ -733,11 +733,11 @@ export default function SearchPage() {
                     </span>
                   )}
                   {sellerVerified && (
-                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
                       <ShieldCheck className="w-3 h-3" />
                       <span>Verified Sellers</span>
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-400"
+                        className="w-3 h-3 cursor-pointer hover:text-red-500"
                         onClick={() => {
                           setSellerVerified(false);
                           updateUrlParams({ sellerVerified: "" });
@@ -746,10 +746,10 @@ export default function SearchPage() {
                     </span>
                   )}
                   {maxDistance && (
-                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
                       <span>Within {maxDistance} km</span>
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-400"
+                        className="w-3 h-3 cursor-pointer hover:text-red-500"
                         onClick={() => {
                           setMaxDistance("");
                           updateUrlParams({ maxDistance: "" });
@@ -759,7 +759,7 @@ export default function SearchPage() {
                   )}
                   <button
                     onClick={handleClearFilters}
-                    className="text-slate-400 hover:text-red-400 text-xs underline cursor-pointer ml-1"
+                    className="text-gray-500 hover:text-red-500 text-xs underline cursor-pointer ml-1"
                   >
                     Clear all
                   </button>
@@ -774,36 +774,36 @@ export default function SearchPage() {
                   ))}
                 </div>
               ) : error ? (
-                <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl p-6 text-center">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-6 text-center">
+                  <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500" />
                   <p>{error}</p>
                   <button
                     onClick={executeSearch}
-                    className="mt-4 px-5 py-2 bg-red-500 text-white rounded-xl font-medium text-sm hover:bg-red-600 transition-colors cursor-pointer"
+                    className="mt-4 px-5 py-2 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors cursor-pointer shadow-sm"
                   >
                     Retry Search
                   </button>
                 </div>
               ) : listings.length === 0 ? (
                 /* E-Commerce Empty State */
-                <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-10 sm:p-14 text-center max-w-lg mx-auto my-8">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-700/50 flex items-center justify-center mx-auto mb-4 text-slate-400">
+                <div className="bg-white border border-gray-200 rounded-2xl p-10 sm:p-14 text-center max-w-lg mx-auto my-8 shadow-sm">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4 text-gray-500">
                     <Search className="w-7 h-7" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">No matching products found</h3>
-                  <p className="text-slate-400 text-xs sm:text-sm mb-6 leading-relaxed">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">No matching products found</h3>
+                  <p className="text-gray-500 text-xs sm:text-sm mb-6 leading-relaxed">
                     We couldn&apos;t find any listings matching your search. Try checking spelling, broadening your price range, or clearing filters.
                   </p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                     <button
                       onClick={handleClearFilters}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer shadow-sm"
                     >
                       Clear All Filters
                     </button>
                     <Link
                       to="/"
-                      className="w-full sm:w-auto px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl text-sm transition-colors text-center"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition-colors text-center border border-gray-200"
                     >
                       Browse Featured Deals
                     </Link>
@@ -856,10 +856,10 @@ export default function SearchPage() {
                       <div
                         key={item._id}
                         onClick={() => navigate(`/product/${item._id}`)}
-                        className="flex flex-col sm:flex-row items-stretch bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer group shadow-md"
+                        className="flex flex-col sm:flex-row items-stretch bg-white hover:bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer group shadow-sm hover:shadow-md"
                       >
                         {/* Thumbnail */}
-                        <div className="sm:w-56 h-48 sm:h-auto shrink-0 relative bg-slate-900 overflow-hidden">
+                        <div className="sm:w-56 h-48 sm:h-auto shrink-0 relative bg-gray-100 overflow-hidden">
                           <img
                             src={imgUrl}
                             alt={item.title}
@@ -876,44 +876,44 @@ export default function SearchPage() {
                         <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                              <span className="text-xs text-slate-400 font-medium">
+                              <span className="text-xs text-gray-500 font-medium">
                                 {item.category}
                               </span>
-                              <span className="text-slate-600">•</span>
+                              <span className="text-gray-300">•</span>
                               {isRent ? (
-                                <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded font-semibold">
+                                <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded font-semibold">
                                   For Rent
                                 </span>
                               ) : (
-                                <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded font-semibold">
+                                <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-semibold">
                                   For Sale
                                 </span>
                               )}
                               {item.condition && (
-                                <span className="text-[10px] px-2 py-0.5 bg-slate-700 text-slate-300 rounded capitalize">
+                                <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded capitalize">
                                   {item.condition.replace("_", " ")}
                                 </span>
                               )}
                             </div>
 
-                            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-900 group-hover:text-emerald-600 transition-colors line-clamp-1">
                               {item.title}
                             </h3>
 
-                            <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                               {item.description}
                             </p>
                           </div>
 
-                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/60">
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-150">
                             <div>
-                              <div className="text-lg font-extrabold text-emerald-400">
+                              <div className="text-lg font-extrabold text-emerald-600">
                                 {price != null
                                   ? `$${Number(price).toLocaleString()}${isRent ? "/day" : ""}`
                                   : "—"}
                               </div>
                               {item.deliveryAvailable && (
-                                <div className="text-[11px] text-sky-400 flex items-center gap-1 mt-0.5">
+                                <div className="text-[11px] text-sky-700 flex items-center gap-1 mt-0.5">
                                   <Truck className="w-3 h-3" /> Delivery Available
                                 </div>
                               )}
@@ -921,7 +921,7 @@ export default function SearchPage() {
 
                             <button
                               type="button"
-                              className="px-4 py-2 bg-slate-700 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                              className="px-4 py-2 bg-gray-100 group-hover:bg-emerald-500 group-hover:text-white text-gray-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer border border-gray-200 group-hover:border-transparent"
                             >
                               View Details
                             </button>
@@ -943,11 +943,11 @@ export default function SearchPage() {
                       setPage(newPage);
                       updateUrlParams({ page: newPage });
                     }}
-                    className="px-4 py-2 bg-slate-800 border border-slate-700 text-white rounded-xl text-xs font-medium hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
                   >
                     Previous
                   </button>
-                  <span className="text-xs text-slate-400 px-3">
+                  <span className="text-xs text-gray-500 px-3 font-medium">
                     Page {page} of {pages}
                   </span>
                   <button
@@ -957,7 +957,7 @@ export default function SearchPage() {
                       setPage(newPage);
                       updateUrlParams({ page: newPage });
                     }}
-                    className="px-4 py-2 bg-slate-800 border border-slate-700 text-white rounded-xl text-xs font-medium hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
                   >
                     Next
                   </button>
@@ -969,13 +969,13 @@ export default function SearchPage() {
 
         {/* ── Mobile Filter Modal ── */}
         {mobileFilterOpen && (
-          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-end">
-            <div className="w-full max-w-xs bg-slate-900 border-l border-slate-700 h-full p-6 overflow-y-auto space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-700">
-                <span className="font-bold text-white text-base">Filter Products</span>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end">
+            <div className="w-full max-w-xs bg-white border-l border-gray-200 h-full p-6 overflow-y-auto space-y-6 shadow-2xl">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-150">
+                <span className="font-bold text-gray-900 text-base">Filter Products</span>
                 <button
                   onClick={() => setMobileFilterOpen(false)}
-                  className="p-1 text-slate-400 hover:text-white cursor-pointer"
+                  className="p-1 text-gray-400 hover:text-gray-700 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -983,14 +983,14 @@ export default function SearchPage() {
 
               {/* Mobile Category */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Category</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-2">Category</label>
                 <select
                   value={category}
                   onChange={(e) => {
                     setCategory(e.target.value);
                     updateUrlParams({ category: e.target.value });
                   }}
-                  className="w-full bg-slate-800 text-white text-sm border border-slate-700 rounded-xl p-3"
+                  className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="">All Categories</option>
                   {CATEGORIES.map((cat) => (
@@ -1001,29 +1001,29 @@ export default function SearchPage() {
 
               {/* Mobile Price */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Price Range ($)</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-2">Price Range ($)</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
                     placeholder="Min"
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
-                    className="w-full bg-slate-800 text-white text-sm border border-slate-700 rounded-xl p-2.5"
+                    className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   <input
                     type="number"
                     placeholder="Max"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
-                    className="w-full bg-slate-800 text-white text-sm border border-slate-700 rounded-xl p-2.5"
+                    className="w-full bg-white text-gray-900 text-sm border border-gray-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
 
               {/* Mobile Listing Type */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Listing Type</label>
-                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-800 border border-slate-700 rounded-xl">
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-2">Listing Type</label>
+                <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 border border-gray-200 rounded-xl">
                   {["all", "sell", "rent"].map((t) => (
                     <button
                       key={t}
@@ -1032,8 +1032,8 @@ export default function SearchPage() {
                         setListingType(t);
                         updateUrlParams({ listingType: t });
                       }}
-                      className={`py-1.5 text-xs font-semibold rounded-lg capitalize ${
-                        listingType === t ? "bg-emerald-500 text-white" : "text-slate-400"
+                      className={`py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors ${
+                        listingType === t ? "bg-emerald-500 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
                       }`}
                     >
                       {t === "all" ? "All" : t === "sell" ? "Buy" : "Rent"}
@@ -1044,7 +1044,7 @@ export default function SearchPage() {
 
               {/* Mobile Verification & Delivery */}
               <div className="space-y-3 pt-2">
-                <label className="flex items-center gap-3 text-sm text-slate-200">
+                <label className="flex items-center gap-3 text-sm text-gray-700">
                   <input
                     type="checkbox"
                     checked={deliveryAvailable}
@@ -1057,7 +1057,7 @@ export default function SearchPage() {
                   <span>Delivery Available</span>
                 </label>
 
-                <label className="flex items-center gap-3 text-sm text-slate-200">
+                <label className="flex items-center gap-3 text-sm text-gray-700">
                   <input
                     type="checkbox"
                     checked={sellerVerified}
@@ -1076,7 +1076,7 @@ export default function SearchPage() {
                   updateUrlParams();
                   setMobileFilterOpen(false);
                 }}
-                className="w-full py-3 bg-emerald-500 text-white font-bold rounded-xl cursor-pointer"
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl cursor-pointer shadow-md transition-colors"
               >
                 Apply Filters
               </button>
