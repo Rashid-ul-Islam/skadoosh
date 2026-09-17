@@ -135,11 +135,10 @@ const ProductDetailsPage = () => {
           // Seller info
           seller: listing.seller,
 
-          // Images — backend serves them at /uploads/listings/<filename>
+          // Images — supports both external Supabase URLs and legacy local uploads
           images: (listing.images || []).map((img, idx) => ({
             image_id: idx,
-            // Prepend API_BASE so <img src> resolves correctly
-            image_url: `${API_BASE}${img.url}`,
+            image_url: img.url.startsWith("http") ? img.url : `${API_BASE}${img.url}`,
             filename: img.filename,
           })),
 
@@ -532,7 +531,7 @@ const ProductDetailsPage = () => {
                   {product.listingType === "rent" ? (
                     <div>
                       <span className="text-3xl font-bold text-gray-900">
-                        ৳{parseFloat(product.rentPricePerDay || 0).toFixed(2)}
+                        ${parseFloat(product.rentPricePerDay || 0).toFixed(2)}
                         <span className="text-base font-normal text-gray-500">
                           {" "}
                           / day
@@ -540,7 +539,7 @@ const ProductDetailsPage = () => {
                       </span>
                       {product.depositAmount > 0 && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Deposit: ৳
+                          Deposit: $
                           {parseFloat(product.depositAmount).toFixed(2)}
                         </p>
                       )}
@@ -561,7 +560,7 @@ const ProductDetailsPage = () => {
                     </div>
                   ) : (
                     <span className="text-3xl font-bold text-gray-900">
-                      ৳{(parseFloat(product.price) || 0).toFixed(2)}
+                      ${(parseFloat(product.price) || 0).toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -672,7 +671,7 @@ const ProductDetailsPage = () => {
                   <p className="text-sm text-gray-500 mt-2">
                     Estimated:{" "}
                     <span className="font-semibold text-gray-800">
-                      ৳
+                      $
                       {(
                         (product.rentPricePerDay || 0) * rentalDays
                       ).toLocaleString()}
@@ -722,7 +721,7 @@ const ProductDetailsPage = () => {
                 {/* <div className="flex items-center space-x-3">
                   <Truck className="w-5 h-5 text-green-600" />
                   <span className="text-sm text-gray-700">
-                    Free shipping on orders over ৳50
+                    Free shipping on orders over $50
                   </span>
                 </div> */}
                 {product.is_refundable && (
@@ -822,7 +821,7 @@ const ProductDetailsPage = () => {
                         <div className="flex justify-between">
                           <dt className="text-gray-600">Price:</dt>
                           <dd className="text-black font-medium">
-                            ৳{parseFloat(product.price || 0).toFixed(2)}
+                            ${parseFloat(product.price || 0).toFixed(2)}
                           </dd>
                         </div>
                       )}
@@ -831,7 +830,7 @@ const ProductDetailsPage = () => {
                           <div className="flex justify-between">
                             <dt className="text-gray-600">Rent / Day:</dt>
                             <dd className="text-black font-medium">
-                              ৳
+                              $
                               {parseFloat(product.rentPricePerDay || 0).toFixed(
                                 2,
                               )}
@@ -841,7 +840,7 @@ const ProductDetailsPage = () => {
                             <div className="flex justify-between">
                               <dt className="text-gray-600">Deposit:</dt>
                               <dd className="text-black font-medium">
-                                ৳{parseFloat(product.depositAmount).toFixed(2)}
+                                ${parseFloat(product.depositAmount).toFixed(2)}
                               </dd>
                             </div>
                           )}

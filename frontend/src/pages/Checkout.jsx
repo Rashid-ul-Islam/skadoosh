@@ -23,7 +23,7 @@ import { useNotification } from "../components/hooks/useNotification.js";
 import { API_BASE_URL } from "../config/api.js";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-const fmt = (n) => `৳${Number(n).toLocaleString("en-BD")}`;
+const fmt = (n) => `$${Number(n).toLocaleString("en-US")}`;
 
 function itemSubtotal(item) {
   if (item.listingType === "rent") {

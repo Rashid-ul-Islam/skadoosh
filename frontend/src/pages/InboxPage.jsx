@@ -22,7 +22,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { API_BASE_URL } from "../config/api.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const fmt = (n) => `৳${Number(n || 0).toLocaleString("en-BD")}`;
+const fmt = (n) => `$${Number(n || 0).toLocaleString("en-US")}`;
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -31,7 +31,7 @@ function timeAgo(dateStr) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(dateStr).toLocaleDateString("en-BD", {
+  return new Date(dateStr).toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
   });

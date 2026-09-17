@@ -128,9 +128,9 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     phoneNumber: "",
-    address: "",
+    address: "Times Square, New York, NY 10036, USA",
     // location stores { lat, lng } as an object; serialised to string for display/validation
-    location: null,
+    location: { lat: 40.758, lng: -73.9855 },
   });
 
   const [errors, setErrors] = useState({});
@@ -138,8 +138,8 @@ export default function RegisterPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
-  const [mapCoords, setMapCoords] = useState(null); // { lat, lng }
-  const [showMap, setShowMap] = useState(false);
+  const [mapCoords, setMapCoords] = useState({ lat: 40.758, lng: -73.9855 }); // New York default
+  const [showMap, setShowMap] = useState(true);
 
   // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -226,8 +226,8 @@ export default function RegisterPage() {
         );
         // Still show map so user can pick manually
         setShowMap(true);
-        // Default to a central world view if no coords yet
-        if (!mapCoords) setMapCoords({ lat: 23.8103, lng: 90.4125 }); // Dhaka default
+        // Default to New York if no coords yet
+        if (!mapCoords) setMapCoords({ lat: 40.758, lng: -73.9855 }); // New York default
       },
     );
   };
@@ -583,7 +583,7 @@ export default function RegisterPage() {
                   center={
                     mapCoords
                       ? [mapCoords.lat, mapCoords.lng]
-                      : [23.8103, 90.4125]
+                      : [40.758, -73.9855]
                   }
                   zoom={mapCoords ? 16 : 12}
                   style={{ height: "320px", width: "100%" }}

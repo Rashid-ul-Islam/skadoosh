@@ -16,6 +16,8 @@ import MyOrders from "./pages/BuyerOrderPage.jsx";
 import { Navigate, useLocation } from "react-router-dom";
 import OrderChatPage from "./pages/OrderChatPage.jsx";
 import InboxPage from "./pages/InboxPage.jsx";
+import SearchPage from "./pages/SearchPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
 function ScrollToTop() {
@@ -29,7 +31,7 @@ function ScrollToTop() {
 }
 
 
-import { NotificationProvider } from "./components/hooks/useNotification.jsx";
+import { NotificationProvider } from "./components/hooks/useNotification.js";
 
 export default function App() {
   return (
@@ -40,12 +42,14 @@ export default function App() {
           <NavBar />
           <Routes>
             <Route path="/" element={<Homepage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/product/:productId" element={<ProductDetails />} />
             <Route path="/check-email" element={<CheckEmail />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/sell" element={<SellPage />} />
             <Route path="/listings" element={<ListingPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/orders" element={<Orders />} />

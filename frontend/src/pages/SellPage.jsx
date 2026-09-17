@@ -33,7 +33,11 @@ const CATEGORIES = [
 ];
 
 const CONDITIONS = [
-  { value: "new", label: "New", desc: "Never used, original packaging" },
+  { 
+    value: "new", 
+    label: "New", 
+    desc: "Never used, original packaging" 
+  },
   {
     value: "like_new",
     label: "Like new",
@@ -44,8 +48,16 @@ const CONDITIONS = [
     label: "Good",
     desc: "Minor signs of use, fully functional",
   },
-  { value: "fair", label: "Fair", desc: "Visible wear, works as expected" },
-  { value: "poor", label: "For parts", desc: "Damaged or incomplete" },
+  { 
+    value: "fair", 
+    label: "Fair", 
+    desc: "Visible wear, works as expected" 
+  },
+  { 
+    value: "poor", 
+    label: "For parts", 
+    desc: "Damaged or incomplete" 
+  },
 ];
 
 const MAX_IMAGES = 6;
@@ -491,10 +503,10 @@ export default function SellPage() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label required>Price (৳)</Label>
+                    <Label required>Price ($)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
-                        ৳
+                        $
                       </span>
                       <input
                         type="number"
@@ -552,10 +564,10 @@ export default function SellPage() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label required>Price per day (৳)</Label>
+                    <Label required>Price per day ($)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
-                        ৳
+                        $
                       </span>
                       <input
                         type="number"
@@ -570,10 +582,10 @@ export default function SellPage() {
                   </div>
 
                   <div>
-                    <Label>Security deposit (৳)</Label>
+                    <Label>Security deposit ($)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
-                        ৳
+                        $
                       </span>
                       <input
                         type="number"

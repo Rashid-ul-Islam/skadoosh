@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../config/api";
 import ProductCard from "../components/layout/ProductCard";
 import { useNotification } from "../components/hooks/useNotification";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 12;
 
 const STATUS_LABELS = {
@@ -68,7 +68,7 @@ function ListingCard({ listing, onDelete, onStatusChange, actionLoading }) {
   const isLoading = actionLoading === listing._id;
 
   return (
-    <div className="flex flex-col rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow bg-white">
+    <div className="flex flex-col rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow bg-white h-full">
       {/* ── Display section: reuse ProductCard in view-only mode ── */}
       <ProductCard
         product={listing}
